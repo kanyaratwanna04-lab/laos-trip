@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>แพลนทริปลาว 3 วัน 2 คืน (Realtime Collaborative)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'IBM Plex Sans Thai', sans-serif; background-color: #f4f7f8; color: #1e293b; }
+    @media print { .no-print { display: none !important; } body { background: #fff; } }
+  </style>
+</head>
+<body class="pb-16">
+
+  <!-- Top Navbar -->
+  <header class="bg-[#1E4D5C] text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 id="tripTitle" contenteditable="true" onblur="updateMeta('title', this.innerText)" class="text-xl md:text-2xl font-bold outline-none focus:bg-white/10 rounded px-1">
+            ลาว 3 วัน 2 คืน : วังเวียง – เมืองเฟือง – เวียงจันทน์
+          </h1>
+          <span id="syncStatus" class="text-xs bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 px-2 py-0.5 rounded-full">● เชื่อมต่อแล้ว</span>
+        </div>
+        <p id="tripSubtitle" contenteditable="true" onblur="updateMeta('subtitle', this.innerText)" class="text-xs md:text-sm text-cyan-100 mt-0.5 outline-none focus:bg-white/10 rounded px-1">
+          เส้นทาง: อุดรธานี – หนองคาย – วังเวียง – เมืองเฟือง – เวียงจันทน์ | เดินทาง: 17 – 19 กรกฎาคม
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 no-print">
+        <div class="flex items-center bg-white/10 rounded-lg px-3 py-1.5 text-sm">
+          <span class="text-cyan-100 mr-2">จำนวนคน:</span>
+          <input id="memberCount" type="number" min="1" value="6" onchange="updateMembers(this.value)"
+            class="w-12 bg-white text-slate-800 font-bold text-center rounded px-1 py-0.5 outline-none" />
+          <span class="ml-1 text-cyan-100">คน</span>
+        </div>
+        <button onclick="window.print()" class="bg-white/15 hover:bg-white/25 text-white text-xs md:text-sm px-3 py-2 rounded-lg transition">
+          พิมพ์ / PDF
+        </button>
+        <button onclick="resetToDefault()" class="bg-rose-500/80 hover:bg-rose-600 text-white text-xs md:text-sm px-3 py-2 rounded-lg transition">
+          รีเซ็ตค่าเริ่มต้น
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 mt-6 space-y-6">
+
+    <!-- Live Budget Summary -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div class="text-xs text-slate-500">ค่าใช้จ่ายส่วนตัว / คน</div>
+        <div id="sumPersonal" class="text-xl md:text-2xl font-bold text-[#1E4D5C] mt-1">0 ฿</div>
+        <div class="text-[11px] text-slate-400 mt-0.5">ตั๋วเครื่องบิน, ซิม, ค่าข้ามด่าน</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div class="text-xs text-slate-500">ส่วนกลาง & ที่พัก (หารแล้ว / คน)</div>
+        <div id="sumShared" class="text-xl md:text-2xl font-bold text-[#2E7D8B] mt-1">0 ฿</div>
+        <div class="text-[11px] text-slate-400 mt-0.5">รถตู้, ทางด่วน, ที่พัก 2 คืน</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div class="text-xs text-slate-500">ค่ากิน & เที่ยวตามแพลน / คน</div>
+        <div id="sumActivities" class="text-xl md:text-2xl font-bold text-teal-600 mt-1">0 ฿</div>
+        <div class="text-[11px] text-slate-400 mt-0.5">รวมจากตาราง Day 1 – Day 3</div>
+      </div>
+      <div class="bg-[#1E4D5C] text-white p-4 rounded-xl shadow-sm">
+        <div class="text-xs text-cyan-200">งบประมาณสุทธิต่อคน</div>
+        <div id="sumTotalPerPerson" class="text-2xl md:text-3xl font-bold mt-1">0 ฿</div>
+        <div id="sumTotalGroup" class="text-xs text-cyan-200 mt-0.5">รวมทั้งทริป (6 คน): 0 ฿</div>
+      </div>
+    </section>
+
+    <!-- Prep & Shared Expenses -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Personal -->
+      <div class="bg-[#FBF8F3] border border-[#E2D9C8] rounded-xl p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-bold text-[#1E4D5C]">รายการที่รับผิดชอบตัวเอง (ต่อคน)</h2>
+          <button onclick="addExpense('personal')" class="no-print text-xs bg-[#1E4D5C] text-white px-2.5 py-1 rounded-lg hover:bg-[#163a46]">+ เพิ่มรายการ</button>
+        </div>
+        <div id="personalList" class="space-y-2"></div>
+      </div>
+
+      <!-- Shared -->
+      <div class="bg-[#F2F7F8] border border-[#C5DCE0] rounded-xl p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-bold text-[#1E4D5C]">รายการส่วนกลาง & ที่พัก</h2>
+          <button onclick="addExpense('shared')" class="no-print text-xs bg-[#2E7D8B] text-white px-2.5 py-1 rounded-lg hover:bg-[#23636e]">+ เพิ่มรายการ</button>
+        </div>
+        <div id="sharedList" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- Daily Itinerary Container -->
+    <div id="daysContainer" class="space-y-6"></div>
+
+    <div class="text-center no-print">
+      <button onclick="addDay()" class="bg-white border-2 border-dashed border-[#2E7D8B] text-[#1E4D5C] font-semibold px-5 py-2.5 rounded-xl hover:bg-[#F2F7F8] transition">
+        + เพิ่มวันเดินทางใหม่
+      </button>
+    </div>
+  </main>
+
+  <script>
+    // =========================================================================
+    // ใส่ค่า PROJECT URL และ ANON KEY จาก Supabase ของคุณตรงนี้
+    // =========================================================================
+    const SUPABASE_URL = 'https://dpnjxiubushiltkhruip.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_shO55VWbtMIy-rcQUy0FGQ_uXvNRhKj';
+    const TRIP_ID = 'laos-3d2n-main';
+
+    const isConfigured = SUPABASE_URL.startsWith('http');
+    const sb = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    // ข้อมูลแพลนเริ่มต้นตามที่ตกลงกันไว้
+    const DEFAULT_STATE = {
+      title: 'ลาว 3 วัน 2 คืน : วังเวียง – เมืองเฟือง – เวียงจันทน์',
+      subtitle: 'เส้นทาง: อุดรธานี – หนองคาย – วังเวียง – เมืองเฟือง – เวียงจันทน์ | เดินทาง: 17 – 19 กรกฎาคม | เรทอ้างอิง: 1,000 กีบ ≈ 1.5 บาท',
+      members: 6,
+      personalExpenses: [
+        { id: 'p1', name: 'ตั๋วเครื่องบินไป–กลับ', note: 'จองเองตามรอบบิน', cost: 3000 },
+        { id: 'p2', name: 'ซิมเน็ต / โรมมิ่งลาว', note: 'ใช้งาน 3 วัน', cost: 200 },
+        { id: 'p3', name: 'ค่าธรรมเนียมข้ามด่านไป–กลับ', note: 'ฝั่งไทย ~35 บ. + ฝั่งลาว ~100 บ.', cost: 150 },
+        { id: 'p4', name: 'พาสปอร์ต (Passport)', note: 'เช็กอายุคงเหลือ > 6 เดือน', cost: 0 }
+      ],
+      sharedExpenses: [
+        { id: 's1', name: 'รถตู้เช่าพร้อมคนขับ (3 วัน)', note: 'ราคาเหมาทั้งคัน (หารตามจำนวนคน)', cost: 9000, split: true },
+        { id: 's2', name: 'ค่าทางด่วนลาว (ไป–กลับ)', note: 'เวียงจันทน์–วังเวียง–เมืองเฟือง (หารตามจำนวนคน)', cost: 400, split: true },
+        { id: 's3', name: 'ที่พักคืนที่ 1 (วังเวียง)', note: 'ราคาเฉลี่ยต่อคน', cost: 900, split: false },
+        { id: 's4', name: 'ที่พักคืนที่ 2 (แพริมน้ำเมืองเฟือง)', note: 'ราคาเฉลี่ยต่อคน', cost: 1100, split: false }
+      ],
+      days: [
+        {
+          id: 'day1',
+          title: 'DAY 1 (17 July) : อุดรธานี – หนองคาย – วังเวียง',
+          stay: 'พักคืนที่ 1 : วังเวียง',
+          items: [
+            { id: 'd1_1', time: '06:20–07:20', title: 'บินเช้าถึงสนามบินอุดรธานี', desc: 'รับกระเป๋า เจอกันที่จุดนัดพบรถตู้', cost: 0 },
+            { id: 'd1_2', time: '07:30', title: 'ออกจากสนามบินอุดรฯ ไปด่านหนองคาย', desc: 'ระยะทาง 60 กม. (~1 ชม.)', cost: 0 },
+            { id: 'd1_3', time: '09:00', title: 'อาหารเช้าที่หนองคาย', desc: 'แวะทานมื้อเช้าก่อนข้ามด่าน', cost: 120 },
+            { id: 'd1_4', time: '10:00', title: 'ทำเรื่องข้ามด่าน (~30 นาที)', desc: 'ประทับตราเข้าเมืองฝั่งลาว (~100 บ./คน)', cost: 100 },
+            { id: 'd1_5', time: '10:30', title: 'เดินทางจากด่านไปวังเวียง', desc: 'ระยะทาง 150 กม. (~2.30 ชม.) วิ่งทางด่วน', cost: 0 },
+            { id: 'd1_6', time: '13:00', title: 'ถึงวังเวียง ทานอาหารกลางวัน', desc: 'ร้านอาหารท้องถิ่นในวังเวียง', cost: 150 },
+            { id: 'd1_7', time: 'บ่าย', title: 'Sky Club (ควรจองล่วงหน้า)', desc: 'ค่าเข้าถ่ายรูปบอลลูน ~80 บ. (หากขึ้นบอลลูน/พารามอเตอร์ ~3,500-4,000 บ.)', cost: 80 },
+            { id: 'd1_8', time: 'บ่าย', title: 'จุดชมวิวผาหนามไซ (Nam Xay)', desc: 'ค่าเข้า ~30,000 กีบ (~45-50 บ./คน)', cost: 50 },
+            { id: 'd1_9', time: 'บ่าย', title: 'บลูลากูน (Blue Lagoon 1 / 2 / 3)', desc: 'ค่าเข้า ~20,000 กีบ (~30-35 บ./คน)', cost: 35 },
+            { id: 'd1_10', time: 'เย็น', title: 'ล่องเรือแม่น้ำซอง', desc: 'ชมวิวภูเขาช่วงเย็น (~270 บ./2 คน)', cost: 135 },
+            { id: 'd1_11', time: 'เย็น', title: 'คาเฟ่วังเวียง', desc: 'Pullmind / Vieng Tara / Amari', cost: 150 },
+            { id: 'd1_12', time: 'ค่ำ', title: 'Check-in โรงแรมวังเวียง + อาหารเย็น', desc: 'พักผ่อนตามอัธยาศัย', cost: 200 }
+          ],
+          photos: [
+            { caption: 'ไฮไลต์วังเวียง / ผาหนามไซ', url: '' },
+            { caption: 'ล่องเรือแม่น้ำซอง / คาเฟ่', url: '' }
+          ]
+        },
+        {
+          id: 'day2',
+          title: 'DAY 2 (18 July) : วังเวียง – เมืองเฟือง',
+          stay: 'พักคืนที่ 2 : แพริมน้ำเมืองเฟือง',
+          items: [
+            { id: 'd2_1', time: '08:00', title: 'เช็คเอาท์โรงแรมวังเวียง', desc: 'เตรียมสัมภาระขึ้นรถตู้', cost: 0 },
+            { id: 'd2_2', time: '08:30', title: 'เที่ยวเก็บตกช่วงเช้าก่อนออกเดินทาง', desc: 'ถ้ำจัง (~25 บ.) / สะพานส้ม (~15 บ.) / คาเฟ่เช้า', cost: 100 },
+            { id: 'd2_3', time: '10:30', title: 'เดินทางจาก วังเวียง ไป เมืองเฟือง', desc: 'ระยะทาง 100 กม. (~2.30 ชม.)', cost: 0 },
+            { id: 'd2_4', time: '13:00', title: 'ถึงเมืองเฟือง ทานอาหารกลางวัน + Check-in แพริมน้ำ', desc: 'เข้าที่พักริมแม่น้ำลีก', cost: 150 },
+            { id: 'd2_5', time: 'บ่าย', title: 'ล่องแพ / พายคายัค แม่น้ำลีก', desc: 'ชมวิวภูเขาหินปูน (~100,000–150,000 กีบ/ลำ)', cost: 200 },
+            { id: 'd2_6', time: 'บ่าย', title: 'วัดสินไชยาราม / จุดชมวิวผาตั้ง', desc: 'ไหว้พระขอพร ถ่ายรูปวิวเขา (เข้าชมฟรี)', cost: 0 },
+            { id: 'd2_7', time: 'เย็น', title: 'สั่งจองชุดตักบาตรริมน้ำ (สำหรับเช้า Day 3)', desc: 'แจ้งที่พักล่วงหน้า (~60,000 กีบ/ชุด)', cost: 100 },
+            { id: 'd2_8', time: 'ค่ำ', title: 'พักผ่อนริมแพ + อาหารเย็น / หมูกระทะริมน้ำ', desc: 'บรรยากาศชิลๆ ริมน้ำ', cost: 200 }
+          ],
+          photos: [
+            { caption: 'บรรยากาศแพริมน้ำเมืองเฟือง', url: '' },
+            { caption: 'ล่องแพแม่น้ำลีก / วิวภูเขา', url: '' }
+          ]
+        },
+        {
+          id: 'day3',
+          title: 'DAY 3 (19 July) : เมืองเฟือง – เวียงจันทน์ – สนามบินอุดรฯ',
+          stay: 'เดินทางกลับ',
+          items: [
+            { id: 'd3_1', time: '06:30', title: 'ตักบาตรพระสงฆ์ริมน้ำยามเช้า + อาหารเช้าที่พัก', desc: 'พระพายเรือรับบาตรหน้าแพ', cost: 0 },
+            { id: 'd3_2', time: '09:00', title: 'เช็คเอาท์ที่พักเมืองเฟือง', desc: 'เตรียมเดินทางเข้าเวียงจันทน์', cost: 0 },
+            { id: 'd3_3', time: '09:30', title: 'เดินทางจาก เมืองเฟือง ไป เมืองเวียงจันทน์', desc: 'ระยะทาง 140 กม. (~2.30 ชม.)', cost: 0 },
+            { id: 'd3_4', time: '12:00', title: 'ถึงเวียงจันทน์ ทานอาหารกลางวัน', desc: 'เฝอแซ่บ / แหนมเนืองเวียงจันทน์', cost: 150 },
+            { id: 'd3_5', time: 'บ่าย', title: 'พระธาตุหลวงเวียงจันทน์', desc: 'ลานด้านนอกฟรี / เข้าด้านใน (~30,000 กีบ)', cost: 50 },
+            { id: 'd3_6', time: 'บ่าย', title: 'ประตูชัย (Patuxay)', desc: 'ถ่ายรูปรอบนอกฟรี / ขึ้นชมวิวชั้นบน (~30,000 กีบ)', cost: 50 },
+            { id: 'd3_7', time: 'บ่าย', title: 'วัดสีสะเกด / หอพระแก้ว (ทางเลือก)', desc: 'ค่าเข้าชม ~30,000 กีบ', cost: 50 },
+            { id: 'd3_8', time: 'บ่าย', title: 'คาเฟ่เวียงจันทน์ / แวะซื้อของฝาก', desc: 'Joma Bakery / ร้านกาแฟ', cost: 150 },
+            { id: 'd3_9', time: '15:30', title: 'เดินทางไปด่านฯ ทำเรื่องข้ามกลับหนองคาย', desc: 'เผื่อเวลา 30–45 นาที (~30-50 บ./คน)', cost: 50 },
+            { id: 'd3_10', time: '18:30', title: 'ถึงสนามบินอุดรธานี', desc: 'เช็คอินก่อนบิน', cost: 0 },
+            { id: 'd3_11', time: '19:20', title: 'ขึ้นเครื่องกลับโดยสวัสดิภาพ', desc: 'จบทริป 3 วัน 2 คืน', cost: 0 }
+          ],
+          photos: [
+            { caption: 'ตักบาตรยามเช้าเมืองเฟือง', url: '' },
+            { caption: 'พระธาตุหลวง / ประตูชัย เวียงจันทน์', url: '' }
+          ]
+        }
+      ]
+    };
+
+    let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    let saveTimer = null;
+
+    // โหลดข้อมูลเริ่มต้นจาก Supabase หรือ localStorage
+    async function init() {
+      if (sb) {
+        setStatus('กำลังโหลดข้อมูล...', 'yellow');
+        const { data, error } = await sb.from('trip_plans').select('data').eq('id', TRIP_ID).single();
+        if (data && data.data) {
+          state = data.data;
+        } else {
+          await sb.from('trip_plans').upsert({ id: TRIP_ID, data: state });
+        }
+        setStatus('● ซิงก์ออนไลน์กับเพื่อนแล้ว', 'green');
+
+        // ฟังการแก้ไขแบบ Realtime จากเพื่อนในทริป
+        sb.channel('trip-sync')
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trip_plans', filter: `id=eq.${TRIP_ID}` }, payload => {
+            if (payload.new && payload.new.data) {
+              state = payload.new.data;
+              renderAll();
+              setStatus('● อัปเดตล่าสุดจากเพื่อนในทริป', 'green');
+            }
+          })
+          .subscribe();
+      } else {
+        const saved = localStorage.getItem('laos_trip_offline');
+        if (saved) state = JSON.parse(saved);
+        setStatus('● โหมดออฟไลน์ (ยังไม่ได้ใส่คีย์ Supabase)', 'yellow');
+      }
+      renderAll();
+    }
+
+    function setStatus(text, color) {
+      const el = document.getElementById('syncStatus');
+      el.innerText = text;
+      el.className = color === 'green'
+        ? 'text-xs bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 px-2.5 py-0.5 rounded-full'
+        : 'text-xs bg-amber-500/20 text-amber-200 border border-amber-400/30 px-2.5 py-0.5 rounded-full';
+    }
+
+    function saveState() {
+      renderBudget();
+      clearTimeout(saveTimer);
+      setStatus('กำลังบันทึก...', 'yellow');
+      saveTimer = setTimeout(async () => {
+        if (sb) {
+          await sb.from('trip_plans').upsert({ id: TRIP_ID, data: state, updated_at: new Date().toISOString() });
+          setStatus('● บันทึกขึ้น Cloud แล้ว', 'green');
+        } else {
+          localStorage.setItem('laos_trip_offline', JSON.stringify(state));
+          setStatus('● บันทึกในเครื่องแล้ว', 'yellow');
+        }
+      }, 400);
+    }
+
+    function renderAll() {
+      document.getElementById('tripTitle').innerText = state.title;
+      document.getElementById('tripSubtitle').innerText = state.subtitle;
+      document.getElementById('memberCount').value = state.members;
+      renderExpenses();
+      renderDays();
+      renderBudget();
+    }
+
+    function renderBudget() {
+      const m = Math.max(1, Number(state.members) || 1);
+      const personal = state.personalExpenses.reduce((s, x) => s + (Number(x.cost) || 0), 0);
+      const shared = state.sharedExpenses.reduce((s, x) => {
+        const c = Number(x.cost) || 0;
+        return s + (x.split ? (c / m) : c);
+      }, 0);
+      const activities = state.days.reduce((sumD, d) => sumD + d.items.reduce((sumI, i) => sumI + (Number(i.cost) || 0), 0), 0);
+      const totalPerPerson = Math.round(personal + shared + activities);
+      const totalGroup = totalPerPerson * m;
+
+      document.getElementById('sumPersonal').innerText = personal.toLocaleString() + ' ฿';
+      document.getElementById('sumShared').innerText = Math.round(shared).toLocaleString() + ' ฿';
+      document.getElementById('sumActivities').innerText = activities.toLocaleString() + ' ฿';
+      document.getElementById('sumTotalPerPerson').innerText = totalPerPerson.toLocaleString() + ' ฿';
+      document.getElementById('sumTotalGroup').innerText = `รวมทั้งทริป (${m} คน): ${totalGroup.toLocaleString()} ฿`;
+    }
+
+    function renderExpenses() {
+      const pEl = document.getElementById('personalList');
+      pEl.innerHTML = state.personalExpenses.map((item, idx) => `
+        <div class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center justify-between gap-2 text-sm">
+          <div class="flex-1 min-w-0">
+            <input value="${item.name}" onchange="editExpense('personal', ${idx}, 'name', this.value)" class="font-semibold text-slate-800 w-full outline-none focus:bg-slate-100 rounded px-1" />
+            <input value="${item.note}" onchange="editExpense('personal', ${idx}, 'note', this.value)" class="text-xs text-slate-500 w-full outline-none focus:bg-slate-100 rounded px-1" />
+          </div>
+          <div class="flex items-center gap-1">
+            <input type="number" value="${item.cost}" onchange="editExpense('personal', ${idx}, 'cost', this.value)" class="w-20 text-right font-bold text-teal-700 border border-slate-200 rounded px-1.5 py-1 text-sm" />
+            <span class="text-xs text-slate-500">฿</span>
+            <button onclick="removeExpense('personal', ${idx})" class="no-print text-slate-400 hover:text-rose-500 px-1">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+      const sEl = document.getElementById('sharedList');
+      sEl.innerHTML = state.sharedExpenses.map((item, idx) => `
+        <div class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center justify-between gap-2 text-sm">
+          <div class="flex-1 min-w-0">
+            <input value="${item.name}" onchange="editExpense('shared', ${idx}, 'name', this.value)" class="font-semibold text-slate-800 w-full outline-none focus:bg-slate-100 rounded px-1" />
+            <div class="flex items-center gap-2 mt-0.5">
+              <input value="${item.note}" onchange="editExpense('shared', ${idx}, 'note', this.value)" class="text-xs text-slate-500 flex-1 outline-none focus:bg-slate-100 rounded px-1" />
+              <label class="text-[11px] text-[#2E7D8B] flex items-center gap-1 cursor-pointer shrink-0">
+                <input type="checkbox" ${item.split ? 'checked' : ''} onchange="editExpense('shared', ${idx}, 'split', this.checked)" />
+                หาร ${state.members} คน
+              </label>
+            </div>
+          </div>
+          <div class="flex items-center gap-1">
+            <input type="number" value="${item.cost}" onchange="editExpense('shared', ${idx}, 'cost', this.value)" class="w-20 text-right font-bold text-teal-700 border border-slate-200 rounded px-1.5 py-1 text-sm" />
+            <span class="text-xs text-slate-500">฿</span>
+            <button onclick="removeExpense('shared', ${idx})" class="no-print text-slate-400 hover:text-rose-500 px-1">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderDays() {
+      const container = document.getElementById('daysContainer');
+      container.innerHTML = state.days.map((day, dIdx) => `
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <!-- Day Header -->
+          <div class="bg-[#2E7D8B] text-white px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex-1 min-w-[240px]">
+              <input value="${day.title}" onchange="editDay(${dIdx}, 'title', this.value)" class="font-bold text-base md:text-lg bg-transparent w-full outline-none focus:bg-white/10 rounded px-1" />
+            </div>
+            <div class="flex items-center gap-2">
+              <input value="${day.stay}" onchange="editDay(${dIdx}, 'stay', this.value)" class="text-xs bg-white/15 text-cyan-50 px-2.5 py-1 rounded-full outline-none text-right" />
+              <button onclick="removeDay(${dIdx})" class="no-print text-xs bg-rose-500/80 hover:bg-rose-600 px-2 py-1 rounded">ลบวัน</button>
+            </div>
+          </div>
+
+          <!-- Split Content: Left Schedule / Right Photo Slots -->
+          <div class="grid grid-cols-1 lg:grid-cols-12">
+            <!-- Left 8 cols: Schedule -->
+            <div class="lg:col-span-8 p-4 divide-y divide-slate-100">
+              ${day.items.map((item, iIdx) => `
+                <div class="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 group">
+                  <div class="flex items-start gap-2.5 flex-1">
+                    <input value="${item.time}" onchange="editItem(${dIdx}, ${iIdx}, 'time', this.value)"
+                      class="w-24 shrink-0 text-xs font-bold text-[#2E7D8B] bg-[#F2F7F8] px-2 py-1 rounded text-center outline-none focus:ring-1 focus:ring-[#2E7D8B]" />
+                    <div class="flex-1 min-w-0">
+                      <input value="${item.title}" onchange="editItem(${dIdx}, ${iIdx}, 'title', this.value)"
+                        class="font-semibold text-sm text-slate-800 w-full outline-none focus:bg-slate-100 rounded px-1" />
+                      <input value="${item.desc}" onchange="editItem(${dIdx}, ${iIdx}, 'desc', this.value)" placeholder="เพิ่มรายละเอียด..."
+                        class="text-xs text-slate-500 w-full outline-none focus:bg-slate-100 rounded px-1 mt-0.5" />
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-end gap-1.5 pl-24 sm:pl-0">
+                    <input type="number" value="${item.cost}" onchange="editItem(${dIdx}, ${iIdx}, 'cost', this.value)"
+                      class="w-20 text-right text-sm font-semibold text-teal-700 border border-slate-200 rounded px-2 py-0.5 outline-none focus:border-[#2E7D8B]" />
+                    <span class="text-xs text-slate-400">฿</span>
+                    <button onclick="moveItem(${dIdx}, ${iIdx}, -1)" title="เลื่อนขึ้น" class="no-print text-slate-400 hover:text-slate-700 px-1 text-xs">▲</button>
+                    <button onclick="moveItem(${dIdx}, ${iIdx}, 1)" title="เลื่อนลง" class="no-print text-slate-400 hover:text-slate-700 px-1 text-xs">▼</button>
+                    <button onclick="removeItem(${dIdx}, ${iIdx})" title="ลบ" class="no-print text-slate-300 hover:text-rose-500 px-1 text-xs">✕</button>
+                  </div>
+                </div>
+              `).join('')}
+
+              <div class="pt-3 no-print">
+                <button onclick="addItem(${dIdx})" class="text-xs font-semibold text-[#2E7D8B] hover:text-[#1E4D5C] flex items-center gap-1">
+                  + เพิ่มสถานที่ / กิจกรรมในวันนี้
+                </button>
+              </div>
+            </div>
+
+            <!-- Right 4 cols: Photo Slots -->
+            <div class="lg:col-span-4 bg-slate-50 border-t lg:border-t-0 lg:border-l border-slate-200 p-4 flex flex-col justify-between gap-4">
+              <div class="text-xs font-semibold text-slate-500 text-center">รูปภาพความทรงจำ / ตัวอย่างสถานที่</div>
+              <div class="space-y-4 flex-1 flex flex-col justify-center">
+                ${day.photos.map((photo, pIdx) => `
+                  <div class="bg-white border-2 border-dashed border-slate-300 rounded-xl p-2.5 text-center relative">
+                    ${photo.url ? `
+                      <img src="${photo.url}" class="w-full h-44 object-cover rounded-lg mb-2" />
+                      <button onclick="clearPhoto(${dIdx}, ${pIdx})" class="no-print absolute top-4 right-4 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full hover:bg-rose-600">ลบรูป</button>
+                    ` : `
+                      <label class="cursor-pointer flex flex-col items-center justify-center h-36 text-slate-400 hover:text-[#2E7D8B] transition">
+                        <span class="text-2xl mb-1">📷</span>
+                        <span class="text-xs font-medium">คลิกเพื่ออัปโหลดรูปที่ ${pIdx + 1}</span>
+                        <input type="file" accept="image/*" class="hidden" onchange="uploadPhoto(${dIdx}, ${pIdx}, this)" />
+                      </label>
+                    `}
+                    <input value="${photo.caption}" onchange="editPhotoCaption(${dIdx}, ${pIdx}, this.value)"
+                      class="text-xs text-center text-slate-600 w-full outline-none focus:bg-slate-100 rounded py-0.5" />
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </section>
+      `).join('');
+    }
+
+    // Actions
+    function updateMeta(key, val) { state[key] = val; saveState(); }
+    function updateMembers(val) { state.members = Math.max(1, Number(val) || 1); renderExpenses(); saveState(); }
+    function editExpense(type, idx, key, val) {
+      const list = type === 'personal' ? state.personalExpenses : state.sharedExpenses;
+      list[idx][key] = key === 'cost' ? Number(val) : val;
+      saveState();
+    }
+    function addExpense(type) {
+      const list = type === 'personal' ? state.personalExpenses : state.sharedExpenses;
+      list.push({ id: Date.now().toString(), name: 'รายการใหม่', note: 'รายละเอียด', cost: 0, split: true });
+      renderExpenses(); saveState();
+    }
+    function removeExpense(type, idx) {
+      const list = type === 'personal' ? state.personalExpenses : state.sharedExpenses;
+      list.splice(idx, 1);
+      renderExpenses(); saveState();
+    }
+    function editDay(dIdx, key, val) { state.days[dIdx][key] = val; saveState(); }
+    function addDay() {
+      const n = state.days.length + 1;
+      state.days.push({
+        id: 'day' + Date.now(),
+        title: `DAY ${n} : ระบุเส้นทางเดินทาง`,
+        stay: 'ระบุที่พัก',
+        items: [{ id: Date.now().toString(), time: '09:00', title: 'กิจกรรมแรก', desc: 'รายละเอียด', cost: 0 }],
+        photos: [{ caption: 'รูปที่ 1', url: '' }, { caption: 'รูปที่ 2', url: '' }]
+      });
+      renderDays(); saveState();
+    }
+    function removeDay(dIdx) {
+      if (confirm('ต้องการลบวันเดินทางนี้ใช่หรือไม่?')) {
+        state.days.splice(dIdx, 1);
+        renderDays(); saveState();
+      }
+    }
+    function editItem(dIdx, iIdx, key, val) {
+      state.days[dIdx].items[iIdx][key] = key === 'cost' ? Number(val) : val;
+      saveState();
+    }
+    function addItem(dIdx) {
+      state.days[dIdx].items.push({ id: Date.now().toString(), time: 'เวลา', title: 'ชื่อสถานที่ / กิจกรรมใหม่', desc: '', cost: 0 });
+      renderDays(); saveState();
+    }
+    function removeItem(dIdx, iIdx) {
+      state.days[dIdx].items.splice(iIdx, 1);
+      renderDays(); saveState();
+    }
+    function moveItem(dIdx, iIdx, dir) {
+      const items = state.days[dIdx].items;
+      const target = iIdx + dir;
+      if (target < 0 || target >= items.length) return;
+      [items[iIdx], items[target]] = [items[target], items[iIdx]];
+      renderDays(); saveState();
+    }
+
+    // ย่อขนาดรูปอัตโนมัติก่อนเก็บลง Database เพื่อไม่ให้ไฟล์ใหญ่เกินไปและโหลดไว
+    function uploadPhoto(dIdx, pIdx, input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxW = 800;
+          const scale = Math.min(1, maxW / img.width);
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          state.days[dIdx].photos[pIdx].url = canvas.toDataURL('image/jpeg', 0.75);
+          renderDays(); saveState();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+    function clearPhoto(dIdx, pIdx) { state.days[dIdx].photos[pIdx].url = ''; renderDays(); saveState(); }
+    function editPhotoCaption(dIdx, pIdx, val) { state.days[dIdx].photos[pIdx].caption = val; saveState(); }
+    function resetToDefault() {
+      if (confirm('ต้องการรีเซ็ตข้อมูลทั้งหมดกลับเป็นแพลนเริ่มต้นใช่หรือไม่?')) {
+        state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+        renderAll(); saveState();
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

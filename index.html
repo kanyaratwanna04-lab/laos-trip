@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>แพลนทริปลาว 3 วัน 2 คืน (Realtime + คำนวณระยะทาง)</title>
+  <title>แพลนทริปลาว 3 วัน 2 คืน (Realtime + คำนวณระยะทาง + เพิ่มรูปไม่จำกัด)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -50,7 +50,7 @@
 
     <!-- Quick Route Distance Calculator Tool -->
     <section class="bg-white p-4 rounded-xl shadow-sm border border-cyan-200 no-print">
-      <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center justify-between mb-2 flex-wrap gap-1">
         <h2 class="font-bold text-[#1E4D5C] text-sm md:text-base flex items-center gap-1.5">
           🧭 เครื่องมือเช็กระยะทางด่วน (จากจุด A ไป จุด B)
         </h2>
@@ -226,7 +226,6 @@
     let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
     let saveTimer = null;
 
-    // ฟังก์ชันค้นหาพิกัดและคำนวณระยะทางจริงผ่าน OpenStreetMap + OSRM (ฟรี)
     async function geocodePlace(query) {
       const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
       const res = await fetch(url);
@@ -253,7 +252,6 @@
       return { distKm, timeStr, gmapUrl };
     }
 
-    // คำนวณระยะทางด่วนด้านบนสุด
     async function quickCalcDistance() {
       const from = document.getElementById('calcFrom').value.trim();
       const to = document.getElementById('calcTo').value.trim();
@@ -282,7 +280,6 @@
       }
     }
 
-    // คำนวณระยะทางจากจุดก่อนหน้ามายังรายการนี้ในตารางอัตโนมัติ
     async function calcFromPrevItem(dIdx, iIdx) {
       if (iIdx === 0 && dIdx === 0) return alert('รายการแรกสุดไม่มีจุดเริ่มต้นก่อนหน้าครับ');
       const currItem = state.days[dIdx].items[iIdx];
@@ -449,6 +446,7 @@
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-12">
+            <!-- Left 8 cols: Schedule -->
             <div class="lg:col-span-8 p-4 divide-y divide-slate-100">
               ${day.items.map((item, iIdx) => {
                 const mapSearch = encodeURIComponent(item.mapQuery || item.title);
@@ -506,26 +504,41 @@
               </div>
             </div>
 
+            <!-- Right 4 cols: Dynamic Photo Slots -->
             <div class="lg:col-span-4 bg-slate-50 border-t lg:border-t-0 lg:border-l border-slate-200 p-4 flex flex-col justify-between gap-4">
-              <div class="text-xs font-semibold text-slate-500 text-center">รูปภาพความทรงจำ / ตัวอย่างสถานที่</div>
-              <div class="space-y-4 flex-1 flex flex-col justify-center">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500">รูปภาพความทรงจำ (${day.photos.length} รูป)</span>
+                <button onclick="addPhotoSlot(${dIdx})" class="no-print text-xs bg-[#2E7D8B] hover:bg-[#1E4D5C] text-white px-2.5 py-1 rounded-lg transition">
+                  + เพิ่มช่องใส่รูป
+                </button>
+              </div>
+
+              <div class="space-y-3 flex-1">
                 ${day.photos.map((photo, pIdx) => `
-                  <div class="bg-white border-2 border-dashed border-slate-300 rounded-xl p-2.5 text-center relative">
+                  <div class="bg-white border-2 border-dashed border-slate-300 rounded-xl p-2.5 text-center relative group">
+                    <button onclick="removePhotoSlot(${dIdx}, ${pIdx})" title="ลบช่องรูปนี้"
+                      class="no-print absolute -top-2 -right-2 bg-rose-500 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center shadow hover:bg-rose-600 z-10">
+                      ✕
+                    </button>
                     ${photo.url ? `
                       <img src="${photo.url}" class="w-full h-44 object-cover rounded-lg mb-2" />
-                      <button onclick="clearPhoto(${dIdx}, ${pIdx})" class="no-print absolute top-4 right-4 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full hover:bg-rose-600">ลบรูป</button>
+                      <button onclick="clearPhoto(${dIdx}, ${pIdx})" class="no-print absolute top-4 right-4 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full hover:bg-rose-600">เปลี่ยนรูป</button>
                     ` : `
-                      <label class="cursor-pointer flex flex-col items-center justify-center h-36 text-slate-400 hover:text-[#2E7D8B] transition">
+                      <label class="cursor-pointer flex flex-col items-center justify-center h-32 text-slate-400 hover:text-[#2E7D8B] transition">
                         <span class="text-2xl mb-1">📷</span>
-                        <span class="text-xs font-medium">คลิกเพื่ออัปโหลดรูปที่ ${pIdx + 1}</span>
+                        <span class="text-xs font-medium">คลิกเพื่อเลือกรูปที่ ${pIdx + 1}</span>
                         <input type="file" accept="image/*" class="hidden" onchange="uploadPhoto(${dIdx}, ${pIdx}, this)" />
                       </label>
                     `}
-                    <input value="${photo.caption}" onchange="editPhotoCaption(${dIdx}, ${pIdx}, this.value)"
-                      class="text-xs text-center text-slate-600 w-full outline-none focus:bg-slate-100 rounded py-0.5" />
+                    <input value="${photo.caption}" onchange="editPhotoCaption(${dIdx}, ${pIdx}, this.value)" placeholder="ใส่คำบรรยายใต้ภาพ..."
+                      class="text-xs text-center text-slate-600 w-full outline-none focus:bg-slate-100 rounded py-0.5 mt-1" />
                   </div>
                 `).join('')}
               </div>
+
+              <button onclick="addPhotoSlot(${dIdx})" class="no-print w-full py-2 border border-dashed border-[#2E7D8B] text-[#2E7D8B] hover:bg-[#F2F7F8] rounded-xl text-xs font-semibold transition">
+                + เพิ่มช่องใส่รูปภาพอีก
+              </button>
             </div>
           </div>
         </section>
@@ -588,6 +601,18 @@
       renderDays(); saveState();
     }
 
+    // Photo Slot Management (เพิ่ม/ลบช่องรูปได้ไม่จำกัด)
+    function addPhotoSlot(dIdx) {
+      const nextNum = state.days[dIdx].photos.length + 1;
+      state.days[dIdx].photos.push({ caption: `รูปที่ ${nextNum}`, url: '' });
+      renderDays(); saveState();
+    }
+    function removePhotoSlot(dIdx, pIdx) {
+      if (confirm('ต้องการลบช่องรูปภาพนี้ใช่หรือไม่?')) {
+        state.days[dIdx].photos.splice(pIdx, 1);
+        renderDays(); saveState();
+      }
+    }
     function uploadPhoto(dIdx, pIdx, input) {
       const file = input.files[0];
       if (!file) return;
@@ -601,7 +626,7 @@
           canvas.width = img.width * scale;
           canvas.height = img.height * scale;
           canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-          state.days[dIdx].photos[pIdx].url = canvas.toDataURL('image/jpeg', 0.75);
+          state.days[dIdx].photos[pIdx].url = canvas.toDataURL('image/jpeg', 0.72);
           renderDays(); saveState();
         };
         img.src = e.target.result;

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>แพลนทริปลาว 3 วัน 2 คืน (Realtime Collaborative)</title>
+  <title>แพลนทริปลาว 3 วัน 2 คืน (Realtime + คำนวณระยะทาง)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
   <header class="bg-[#1E4D5C] text-white shadow-md sticky top-0 z-30">
     <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
       <div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <h1 id="tripTitle" contenteditable="true" onblur="updateMeta('title', this.innerText)" class="text-xl md:text-2xl font-bold outline-none focus:bg-white/10 rounded px-1">
             ลาว 3 วัน 2 คืน : วังเวียง – เมืองเฟือง – เวียงจันทน์
           </h1>
@@ -48,6 +48,33 @@
 
   <main class="max-w-6xl mx-auto px-4 mt-6 space-y-6">
 
+    <!-- Quick Route Distance Calculator Tool -->
+    <section class="bg-white p-4 rounded-xl shadow-sm border border-cyan-200 no-print">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-bold text-[#1E4D5C] text-sm md:text-base flex items-center gap-1.5">
+          🧭 เครื่องมือเช็กระยะทางด่วน (จากจุด A ไป จุด B)
+        </h2>
+        <span class="text-[11px] text-slate-400">พิมพ์ชื่อสถานที่ภาษาอังกฤษหรือไทย เช่น Udon Thani Airport, Vang Vieng, Patuxay</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+        <div class="md:col-span-4">
+          <input id="calcFrom" type="text" placeholder="จุดเริ่มต้น (เช่น สนามบินอุดรธานี)" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#2E7D8B]" />
+        </div>
+        <div class="md:col-span-4">
+          <input id="calcTo" type="text" placeholder="จุดหมายปลายทาง (เช่น วังเวียง)" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#2E7D8B]" />
+        </div>
+        <div class="md:col-span-4 flex gap-2">
+          <button onclick="quickCalcDistance()" id="calcBtn" class="flex-1 bg-[#2E7D8B] hover:bg-[#1E4D5C] text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+            คำนวณระยะทาง
+          </button>
+          <a id="gmapQuickLink" href="https://www.google.com/maps" target="_blank" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center justify-center">
+            Google Maps ↗
+          </a>
+        </div>
+      </div>
+      <div id="calcResult" class="hidden mt-2.5 text-sm bg-[#F2F7F8] text-[#1E4D5C] px-3 py-2 rounded-lg border border-cyan-200 flex flex-wrap items-center justify-between gap-2"></div>
+    </section>
+
     <!-- Live Budget Summary -->
     <section class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
@@ -74,7 +101,6 @@
 
     <!-- Prep & Shared Expenses -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- Personal -->
       <div class="bg-[#FBF8F3] border border-[#E2D9C8] rounded-xl p-4 shadow-sm">
         <div class="flex items-center justify-between mb-3">
           <h2 class="font-bold text-[#1E4D5C]">รายการที่รับผิดชอบตัวเอง (ต่อคน)</h2>
@@ -83,7 +109,6 @@
         <div id="personalList" class="space-y-2"></div>
       </div>
 
-      <!-- Shared -->
       <div class="bg-[#F2F7F8] border border-[#C5DCE0] rounded-xl p-4 shadow-sm">
         <div class="flex items-center justify-between mb-3">
           <h2 class="font-bold text-[#1E4D5C]">รายการส่วนกลาง & ที่พัก</h2>
@@ -105,7 +130,7 @@
 
   <script>
     // =========================================================================
-    // ใส่ค่า PROJECT URL และ ANON KEY จาก Supabase ของคุณตรงนี้
+    // ใส่ค่า PROJECT URL และ PUBLISHABLE KEY จาก Supabase ของคุณตรงนี้
     // =========================================================================
     const SUPABASE_URL = 'https://dpnjxiubushiltkhruip.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_shO55VWbtMIy-rcQUy0FGQ_uXvNRhKj';
@@ -114,7 +139,6 @@
     const isConfigured = SUPABASE_URL.startsWith('http');
     const sb = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-    // ข้อมูลแพลนเริ่มต้นตามที่ตกลงกันไว้
     const DEFAULT_STATE = {
       title: 'ลาว 3 วัน 2 คืน : วังเวียง – เมืองเฟือง – เวียงจันทน์',
       subtitle: 'เส้นทาง: อุดรธานี – หนองคาย – วังเวียง – เมืองเฟือง – เวียงจันทน์ | เดินทาง: 17 – 19 กรกฎาคม | เรทอ้างอิง: 1,000 กีบ ≈ 1.5 บาท',
@@ -137,18 +161,18 @@
           title: 'DAY 1 (17 July) : อุดรธานี – หนองคาย – วังเวียง',
           stay: 'พักคืนที่ 1 : วังเวียง',
           items: [
-            { id: 'd1_1', time: '06:20–07:20', title: 'บินเช้าถึงสนามบินอุดรธานี', desc: 'รับกระเป๋า เจอกันที่จุดนัดพบรถตู้', cost: 0 },
-            { id: 'd1_2', time: '07:30', title: 'ออกจากสนามบินอุดรฯ ไปด่านหนองคาย', desc: 'ระยะทาง 60 กม. (~1 ชม.)', cost: 0 },
-            { id: 'd1_3', time: '09:00', title: 'อาหารเช้าที่หนองคาย', desc: 'แวะทานมื้อเช้าก่อนข้ามด่าน', cost: 120 },
-            { id: 'd1_4', time: '10:00', title: 'ทำเรื่องข้ามด่าน (~30 นาที)', desc: 'ประทับตราเข้าเมืองฝั่งลาว (~100 บ./คน)', cost: 100 },
-            { id: 'd1_5', time: '10:30', title: 'เดินทางจากด่านไปวังเวียง', desc: 'ระยะทาง 150 กม. (~2.30 ชม.) วิ่งทางด่วน', cost: 0 },
-            { id: 'd1_6', time: '13:00', title: 'ถึงวังเวียง ทานอาหารกลางวัน', desc: 'ร้านอาหารท้องถิ่นในวังเวียง', cost: 150 },
-            { id: 'd1_7', time: 'บ่าย', title: 'Sky Club (ควรจองล่วงหน้า)', desc: 'ค่าเข้าถ่ายรูปบอลลูน ~80 บ. (หากขึ้นบอลลูน/พารามอเตอร์ ~3,500-4,000 บ.)', cost: 80 },
-            { id: 'd1_8', time: 'บ่าย', title: 'จุดชมวิวผาหนามไซ (Nam Xay)', desc: 'ค่าเข้า ~30,000 กีบ (~45-50 บ./คน)', cost: 50 },
-            { id: 'd1_9', time: 'บ่าย', title: 'บลูลากูน (Blue Lagoon 1 / 2 / 3)', desc: 'ค่าเข้า ~20,000 กีบ (~30-35 บ./คน)', cost: 35 },
-            { id: 'd1_10', time: 'เย็น', title: 'ล่องเรือแม่น้ำซอง', desc: 'ชมวิวภูเขาช่วงเย็น (~270 บ./2 คน)', cost: 135 },
-            { id: 'd1_11', time: 'เย็น', title: 'คาเฟ่วังเวียง', desc: 'Pullmind / Vieng Tara / Amari', cost: 150 },
-            { id: 'd1_12', time: 'ค่ำ', title: 'Check-in โรงแรมวังเวียง + อาหารเย็น', desc: 'พักผ่อนตามอัธยาศัย', cost: 200 }
+            { id: 'd1_1', time: '06:20–07:20', title: 'สนามบินอุดรธานี', mapQuery: 'Udon Thani International Airport', desc: 'บินเช้าถึงสนามบินอุดรฯ เจอกันที่จุดนัดพบรถตู้', cost: 0, distInfo: '' },
+            { id: 'd1_2', time: '07:30', title: 'ด่านพรมแดนหนองคาย', mapQuery: 'Thai-Lao Friendship Bridge Nong Khai', desc: 'ออกจากสนามบินอุดรฯ ไปด่านหนองคาย', cost: 0, distInfo: '60 กม. (~1 ชม.)' },
+            { id: 'd1_3', time: '09:00', title: 'อาหารเช้าที่หนองคาย', mapQuery: 'Nong Khai', desc: 'แวะทานมื้อเช้าก่อนข้ามด่าน', cost: 120, distInfo: '' },
+            { id: 'd1_4', time: '10:00', title: 'ทำเรื่องข้ามด่าน (~30 นาที)', mapQuery: 'Friendship Bridge Laos Border', desc: 'ประทับตราเข้าเมืองฝั่งลาว (~100 บ./คน)', cost: 100, distInfo: '' },
+            { id: 'd1_5', time: '10:30', title: 'เมืองวังเวียง (Vang Vieng)', mapQuery: 'Vang Vieng, Laos', desc: 'เดินทางจากด่านไปวังเวียง วิ่งทางด่วน', cost: 0, distInfo: '150 กม. (~2 ชม. 30 นาที)' },
+            { id: 'd1_6', time: '13:00', title: 'ถึงวังเวียง ทานอาหารกลางวัน', mapQuery: 'Vang Vieng, Laos', desc: 'ร้านอาหารท้องถิ่นในวังเวียง', cost: 150, distInfo: '' },
+            { id: 'd1_7', time: 'บ่าย', title: 'Sky Club (ควรจองล่วงหน้า)', mapQuery: 'Vang Vieng, Laos', desc: 'ค่าเข้าถ่ายรูปบอลลูน ~80 บ. (หากขึ้นบอลลูน/พารามอเตอร์ ~3,500-4,000 บ.)', cost: 80, distInfo: '' },
+            { id: 'd1_8', time: 'บ่าย', title: 'จุดชมวิวผาหนามไซ (Nam Xay)', mapQuery: 'Pha Ngern Viewpoint Vang Vieng', desc: 'ค่าเข้า ~30,000 กีบ (~45-50 บ./คน)', cost: 50, distInfo: '' },
+            { id: 'd1_9', time: 'บ่าย', title: 'บลูลากูน (Blue Lagoon 1 / 2 / 3)', mapQuery: 'Blue Lagoon 1 Vang Vieng', desc: 'ค่าเข้า ~20,000 กีบ (~30-35 บ./คน)', cost: 35, distInfo: '' },
+            { id: 'd1_10', time: 'เย็น', title: 'ล่องเรือแม่น้ำซอง', mapQuery: 'Nam Song River Vang Vieng', desc: 'ชมวิวภูเขาช่วงเย็น (~270 บ./2 คน)', cost: 135, distInfo: '' },
+            { id: 'd1_11', time: 'เย็น', title: 'คาเฟ่วังเวียง', mapQuery: 'Pullmind Cafe Vang Vieng', desc: 'Pullmind / Vieng Tara / Amari', cost: 150, distInfo: '' },
+            { id: 'd1_12', time: 'ค่ำ', title: 'Check-in โรงแรมวังเวียง + อาหารเย็น', mapQuery: 'Vang Vieng, Laos', desc: 'พักผ่อนตามอัธยาศัย', cost: 200, distInfo: '' }
           ],
           photos: [
             { caption: 'ไฮไลต์วังเวียง / ผาหนามไซ', url: '' },
@@ -160,14 +184,14 @@
           title: 'DAY 2 (18 July) : วังเวียง – เมืองเฟือง',
           stay: 'พักคืนที่ 2 : แพริมน้ำเมืองเฟือง',
           items: [
-            { id: 'd2_1', time: '08:00', title: 'เช็คเอาท์โรงแรมวังเวียง', desc: 'เตรียมสัมภาระขึ้นรถตู้', cost: 0 },
-            { id: 'd2_2', time: '08:30', title: 'เที่ยวเก็บตกช่วงเช้าก่อนออกเดินทาง', desc: 'ถ้ำจัง (~25 บ.) / สะพานส้ม (~15 บ.) / คาเฟ่เช้า', cost: 100 },
-            { id: 'd2_3', time: '10:30', title: 'เดินทางจาก วังเวียง ไป เมืองเฟือง', desc: 'ระยะทาง 100 กม. (~2.30 ชม.)', cost: 0 },
-            { id: 'd2_4', time: '13:00', title: 'ถึงเมืองเฟือง ทานอาหารกลางวัน + Check-in แพริมน้ำ', desc: 'เข้าที่พักริมแม่น้ำลีก', cost: 150 },
-            { id: 'd2_5', time: 'บ่าย', title: 'ล่องแพ / พายคายัค แม่น้ำลีก', desc: 'ชมวิวภูเขาหินปูน (~100,000–150,000 กีบ/ลำ)', cost: 200 },
-            { id: 'd2_6', time: 'บ่าย', title: 'วัดสินไชยาราม / จุดชมวิวผาตั้ง', desc: 'ไหว้พระขอพร ถ่ายรูปวิวเขา (เข้าชมฟรี)', cost: 0 },
-            { id: 'd2_7', time: 'เย็น', title: 'สั่งจองชุดตักบาตรริมน้ำ (สำหรับเช้า Day 3)', desc: 'แจ้งที่พักล่วงหน้า (~60,000 กีบ/ชุด)', cost: 100 },
-            { id: 'd2_8', time: 'ค่ำ', title: 'พักผ่อนริมแพ + อาหารเย็น / หมูกระทะริมน้ำ', desc: 'บรรยากาศชิลๆ ริมน้ำ', cost: 200 }
+            { id: 'd2_1', time: '08:00', title: 'เช็คเอาท์โรงแรมวังเวียง', mapQuery: 'Vang Vieng, Laos', desc: 'เตรียมสัมภาระขึ้นรถตู้', cost: 0, distInfo: '' },
+            { id: 'd2_2', time: '08:30', title: 'เที่ยวเก็บตกช่วงเช้าก่อนออกเดินทาง', mapQuery: 'Tham Chang Cave Vang Vieng', desc: 'ถ้ำจัง (~25 บ.) / สะพานส้ม (~15 บ.) / คาเฟ่เช้า', cost: 100, distInfo: '' },
+            { id: 'd2_3', time: '10:30', title: 'เมืองเฟือง (Muang Feuang)', mapQuery: 'Muang Feuang, Laos', desc: 'เดินทางจาก วังเวียง ไป เมืองเฟือง', cost: 0, distInfo: '100 กม. (~2 ชม. 30 นาที)' },
+            { id: 'd2_4', time: '13:00', title: 'ถึงเมืองเฟือง ทานอาหารกลางวัน + Check-in แพริมน้ำ', mapQuery: 'Muang Feuang, Laos', desc: 'เข้าที่พักริมแม่น้ำลีก', cost: 150, distInfo: '' },
+            { id: 'd2_5', time: 'บ่าย', title: 'ล่องแพ / พายคายัค แม่น้ำลีก', mapQuery: 'Muang Feuang, Laos', desc: 'ชมวิวภูเขาหินปูน (~100,000–150,000 กีบ/ลำ)', cost: 200, distInfo: '' },
+            { id: 'd2_6', time: 'บ่าย', title: 'วัดสินไชยาราม / จุดชมวิวผาตั้ง', mapQuery: 'Wat Sinxayaram Muang Feuang', desc: 'ไหว้พระขอพร ถ่ายรูปวิวเขา (เข้าชมฟรี)', cost: 0, distInfo: '' },
+            { id: 'd2_7', time: 'เย็น', title: 'สั่งจองชุดตักบาตรริมน้ำ (สำหรับเช้า Day 3)', mapQuery: 'Muang Feuang, Laos', desc: 'แจ้งที่พักล่วงหน้า (~60,000 กีบ/ชุด)', cost: 100, distInfo: '' },
+            { id: 'd2_8', time: 'ค่ำ', title: 'พักผ่อนริมแพ + อาหารเย็น / หมูกระทะริมน้ำ', mapQuery: 'Muang Feuang, Laos', desc: 'บรรยากาศชิลๆ ริมน้ำ', cost: 200, distInfo: '' }
           ],
           photos: [
             { caption: 'บรรยากาศแพริมน้ำเมืองเฟือง', url: '' },
@@ -179,17 +203,17 @@
           title: 'DAY 3 (19 July) : เมืองเฟือง – เวียงจันทน์ – สนามบินอุดรฯ',
           stay: 'เดินทางกลับ',
           items: [
-            { id: 'd3_1', time: '06:30', title: 'ตักบาตรพระสงฆ์ริมน้ำยามเช้า + อาหารเช้าที่พัก', desc: 'พระพายเรือรับบาตรหน้าแพ', cost: 0 },
-            { id: 'd3_2', time: '09:00', title: 'เช็คเอาท์ที่พักเมืองเฟือง', desc: 'เตรียมเดินทางเข้าเวียงจันทน์', cost: 0 },
-            { id: 'd3_3', time: '09:30', title: 'เดินทางจาก เมืองเฟือง ไป เมืองเวียงจันทน์', desc: 'ระยะทาง 140 กม. (~2.30 ชม.)', cost: 0 },
-            { id: 'd3_4', time: '12:00', title: 'ถึงเวียงจันทน์ ทานอาหารกลางวัน', desc: 'เฝอแซ่บ / แหนมเนืองเวียงจันทน์', cost: 150 },
-            { id: 'd3_5', time: 'บ่าย', title: 'พระธาตุหลวงเวียงจันทน์', desc: 'ลานด้านนอกฟรี / เข้าด้านใน (~30,000 กีบ)', cost: 50 },
-            { id: 'd3_6', time: 'บ่าย', title: 'ประตูชัย (Patuxay)', desc: 'ถ่ายรูปรอบนอกฟรี / ขึ้นชมวิวชั้นบน (~30,000 กีบ)', cost: 50 },
-            { id: 'd3_7', time: 'บ่าย', title: 'วัดสีสะเกด / หอพระแก้ว (ทางเลือก)', desc: 'ค่าเข้าชม ~30,000 กีบ', cost: 50 },
-            { id: 'd3_8', time: 'บ่าย', title: 'คาเฟ่เวียงจันทน์ / แวะซื้อของฝาก', desc: 'Joma Bakery / ร้านกาแฟ', cost: 150 },
-            { id: 'd3_9', time: '15:30', title: 'เดินทางไปด่านฯ ทำเรื่องข้ามกลับหนองคาย', desc: 'เผื่อเวลา 30–45 นาที (~30-50 บ./คน)', cost: 50 },
-            { id: 'd3_10', time: '18:30', title: 'ถึงสนามบินอุดรธานี', desc: 'เช็คอินก่อนบิน', cost: 0 },
-            { id: 'd3_11', time: '19:20', title: 'ขึ้นเครื่องกลับโดยสวัสดิภาพ', desc: 'จบทริป 3 วัน 2 คืน', cost: 0 }
+            { id: 'd3_1', time: '06:30', title: 'ตักบาตรพระสงฆ์ริมน้ำยามเช้า + อาหารเช้าที่พัก', mapQuery: 'Muang Feuang, Laos', desc: 'พระพายเรือรับบาตรหน้าแพ', cost: 0, distInfo: '' },
+            { id: 'd3_2', time: '09:00', title: 'เช็คเอาท์ที่พักเมืองเฟือง', mapQuery: 'Muang Feuang, Laos', desc: 'เตรียมเดินทางเข้าเวียงจันทน์', cost: 0, distInfo: '' },
+            { id: 'd3_3', time: '09:30', title: 'นครหลวงเวียงจันทน์ (Vientiane)', mapQuery: 'Vientiane, Laos', desc: 'เดินทางจาก เมืองเฟือง ไป เมืองเวียงจันทน์', cost: 0, distInfo: '140 กม. (~2 ชม. 30 นาที)' },
+            { id: 'd3_4', time: '12:00', title: 'ถึงเวียงจันทน์ ทานอาหารกลางวัน', mapQuery: 'Vientiane, Laos', desc: 'เฝอแซ่บ / แหนมเนืองเวียงจันทน์', cost: 150, distInfo: '' },
+            { id: 'd3_5', time: 'บ่าย', title: 'พระธาตุหลวงเวียงจันทน์', mapQuery: 'Pha That Luang Vientiane', desc: 'ลานด้านนอกฟรี / เข้าด้านใน (~30,000 กีบ)', cost: 50, distInfo: '' },
+            { id: 'd3_6', time: 'บ่าย', title: 'ประตูชัย (Patuxay)', mapQuery: 'Patuxay Vientiane', desc: 'ถ่ายรูปรอบนอกฟรี / ขึ้นชมวิวชั้นบน (~30,000 กีบ)', cost: 50, distInfo: '' },
+            { id: 'd3_7', time: 'บ่าย', title: 'วัดสีสะเกด / หอพระแก้ว (ทางเลือก)', mapQuery: 'Wat Si Saket Vientiane', desc: 'ค่าเข้าชม ~30,000 กีบ', cost: 50, distInfo: '' },
+            { id: 'd3_8', time: 'บ่าย', title: 'คาเฟ่เวียงจันทน์ / แวะซื้อของฝาก', mapQuery: 'Joma Bakery Cafe Vientiane', desc: 'Joma Bakery / ร้านกาแฟ', cost: 150, distInfo: '' },
+            { id: 'd3_9', time: '15:30', title: 'ด่านพรมแดนหนองคาย', mapQuery: 'Thai-Lao Friendship Bridge Nong Khai', desc: 'เดินทางไปด่านฯ ทำเรื่องข้ามกลับหนองคาย (~30-50 บ./คน)', cost: 50, distInfo: '25 กม. (~40 นาที)' },
+            { id: 'd3_10', time: '18:30', title: 'สนามบินอุดรธานี', mapQuery: 'Udon Thani International Airport', desc: 'ถึงสนามบินอุดรธานี เช็คอินก่อนบิน', cost: 0, distInfo: '60 กม. (~1 ชม.)' },
+            { id: 'd3_11', time: '19:20', title: 'ขึ้นเครื่องกลับโดยสวัสดิภาพ', mapQuery: 'Udon Thani International Airport', desc: 'จบทริป 3 วัน 2 คืน', cost: 0, distInfo: '' }
           ],
           photos: [
             { caption: 'ตักบาตรยามเช้าเมืองเฟือง', url: '' },
@@ -202,11 +226,102 @@
     let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
     let saveTimer = null;
 
-    // โหลดข้อมูลเริ่มต้นจาก Supabase หรือ localStorage
+    // ฟังก์ชันค้นหาพิกัดและคำนวณระยะทางจริงผ่าน OpenStreetMap + OSRM (ฟรี)
+    async function geocodePlace(query) {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!data || data.length === 0) throw new Error(`ไม่พบสถานที่ "${query}"`);
+      return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), displayName: data[0].display_name };
+    }
+
+    async function fetchRouteDistance(fromText, toText) {
+      const p1 = await geocodePlace(fromText);
+      const p2 = await geocodePlace(toText);
+      const routeUrl = `https://router.project-osrm.org/route/v1/driving/${p1.lon},${p1.lat};${p2.lon},${p2.lat}?overview=false`;
+      const res = await fetch(routeUrl);
+      const data = await res.json();
+      if (!data.routes || data.routes.length === 0) throw new Error('ไม่สามารถคำนวณเส้นทางรถยนต์ระหว่างสองจุดนี้ได้');
+
+      const distKm = (data.routes[0].distance / 1000).toFixed(1);
+      const totalMins = Math.round(data.routes[0].duration / 60);
+      const hrs = Math.floor(totalMins / 60);
+      const mins = totalMins % 60;
+      const timeStr = hrs > 0 ? `${hrs} ชม. ${mins} นาที` : `${mins} นาที`;
+      const gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(fromText)}&destination=${encodeURIComponent(toText)}&travelmode=driving`;
+
+      return { distKm, timeStr, gmapUrl };
+    }
+
+    // คำนวณระยะทางด่วนด้านบนสุด
+    async function quickCalcDistance() {
+      const from = document.getElementById('calcFrom').value.trim();
+      const to = document.getElementById('calcTo').value.trim();
+      const resBox = document.getElementById('calcResult');
+      const btn = document.getElementById('calcBtn');
+      if (!from || !to) return alert('กรุณากรอกทั้งจุดเริ่มต้นและจุดหมายปลายทางครับ');
+
+      btn.innerText = 'กำลังคำนวณ...';
+      btn.disabled = true;
+      try {
+        const info = await fetchRouteDistance(from, to);
+        resBox.classList.remove('hidden');
+        resBox.innerHTML = `
+          <div>
+            <strong>${from}</strong> ➔ <strong>${to}</strong> :
+            ระยะทาง <span class="font-bold text-teal-700">${info.distKm} กม.</span> (ใช้เวลาขับรถประมาณ <span class="font-bold text-teal-700">${info.timeStr}</span>)
+          </div>
+          <a href="${info.gmapUrl}" target="_blank" class="text-xs bg-[#1E4D5C] text-white px-2.5 py-1 rounded hover:bg-[#153742]">ดูเส้นทางใน Google Maps ↗</a>
+        `;
+        document.getElementById('gmapQuickLink').href = info.gmapUrl;
+      } catch (err) {
+        alert(err.message + '\nคำแนะนำ: ลองพิมพ์ชื่อสถานที่ให้ชัดเจนขึ้น เช่น Vang Vieng, Patuxay Vientiane, Nong Khai');
+      } finally {
+        btn.innerText = 'คำนวณระยะทาง';
+        btn.disabled = false;
+      }
+    }
+
+    // คำนวณระยะทางจากจุดก่อนหน้ามายังรายการนี้ในตารางอัตโนมัติ
+    async function calcFromPrevItem(dIdx, iIdx) {
+      if (iIdx === 0 && dIdx === 0) return alert('รายการแรกสุดไม่มีจุดเริ่มต้นก่อนหน้าครับ');
+      const currItem = state.days[dIdx].items[iIdx];
+      const prevItem = iIdx > 0
+        ? state.days[dIdx].items[iIdx - 1]
+        : state.days[dIdx - 1].items[state.days[dIdx - 1].items.length - 1];
+
+      const fromQuery = (prevItem.mapQuery || prevItem.title).trim();
+      const toQuery = (currItem.mapQuery || currItem.title).trim();
+
+      state.days[dIdx].items[iIdx].distInfo = 'กำลังคำนวณ...';
+      renderDays();
+
+      try {
+        const info = await fetchRouteDistance(fromQuery, toQuery);
+        state.days[dIdx].items[iIdx].distInfo = `${info.distKm} กม. (~${info.timeStr})`;
+        renderDays();
+        saveState();
+      } catch (err) {
+        state.days[dIdx].items[iIdx].distInfo = '';
+        renderDays();
+        alert(`คำนวณไม่สำเร็จ: ${err.message}\nลองกดปุ่ม 📍 เพื่อระบุชื่อสถานที่ภาษาอังกฤษ (เช่น Vang Vieng) แล้วกดคำนวณใหม่ครับ`);
+      }
+    }
+
+    function editMapQuery(dIdx, iIdx) {
+      const item = state.days[dIdx].items[iIdx];
+      const input = prompt('ระบุชื่อสถานที่สำหรับค้นหาพิกัดและคำนวณระยะทาง (แนะนำภาษาอังกฤษ เช่น Vang Vieng, Muang Feuang, Patuxay):', item.mapQuery || item.title);
+      if (input !== null) {
+        item.mapQuery = input.trim();
+        renderDays();
+        saveState();
+      }
+    }
+
     async function init() {
       if (sb) {
         setStatus('กำลังโหลดข้อมูล...', 'yellow');
-        const { data, error } = await sb.from('trip_plans').select('data').eq('id', TRIP_ID).single();
+        const { data } = await sb.from('trip_plans').select('data').eq('id', TRIP_ID).single();
         if (data && data.data) {
           state = data.data;
         } else {
@@ -214,7 +329,6 @@
         }
         setStatus('● ซิงก์ออนไลน์กับเพื่อนแล้ว', 'green');
 
-        // ฟังการแก้ไขแบบ Realtime จากเพื่อนในทริป
         sb.channel('trip-sync')
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trip_plans', filter: `id=eq.${TRIP_ID}` }, payload => {
             if (payload.new && payload.new.data) {
@@ -324,7 +438,6 @@
       const container = document.getElementById('daysContainer');
       container.innerHTML = state.days.map((day, dIdx) => `
         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <!-- Day Header -->
           <div class="bg-[#2E7D8B] text-white px-4 py-3 flex flex-wrap items-center justify-between gap-2">
             <div class="flex-1 min-w-[240px]">
               <input value="${day.title}" onchange="editDay(${dIdx}, 'title', this.value)" class="font-bold text-base md:text-lg bg-transparent w-full outline-none focus:bg-white/10 rounded px-1" />
@@ -335,32 +448,56 @@
             </div>
           </div>
 
-          <!-- Split Content: Left Schedule / Right Photo Slots -->
           <div class="grid grid-cols-1 lg:grid-cols-12">
-            <!-- Left 8 cols: Schedule -->
             <div class="lg:col-span-8 p-4 divide-y divide-slate-100">
-              ${day.items.map((item, iIdx) => `
-                <div class="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 group">
-                  <div class="flex items-start gap-2.5 flex-1">
-                    <input value="${item.time}" onchange="editItem(${dIdx}, ${iIdx}, 'time', this.value)"
-                      class="w-24 shrink-0 text-xs font-bold text-[#2E7D8B] bg-[#F2F7F8] px-2 py-1 rounded text-center outline-none focus:ring-1 focus:ring-[#2E7D8B]" />
-                    <div class="flex-1 min-w-0">
-                      <input value="${item.title}" onchange="editItem(${dIdx}, ${iIdx}, 'title', this.value)"
-                        class="font-semibold text-sm text-slate-800 w-full outline-none focus:bg-slate-100 rounded px-1" />
-                      <input value="${item.desc}" onchange="editItem(${dIdx}, ${iIdx}, 'desc', this.value)" placeholder="เพิ่มรายละเอียด..."
-                        class="text-xs text-slate-500 w-full outline-none focus:bg-slate-100 rounded px-1 mt-0.5" />
+              ${day.items.map((item, iIdx) => {
+                const mapSearch = encodeURIComponent(item.mapQuery || item.title);
+                const gmapLink = `https://www.google.com/maps/search/?api=1&query=${mapSearch}`;
+                return `
+                <div class="py-2.5 flex flex-col gap-1.5">
+                  ${(dIdx > 0 || iIdx > 0) ? `
+                    <div class="flex items-center gap-2 pl-24">
+                      ${item.distInfo ? `
+                        <span class="text-[11px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
+                          🚗 เดินทางจากจุดก่อนหน้า: ${item.distInfo}
+                        </span>
+                      ` : ''}
+                      <button onclick="calcFromPrevItem(${dIdx}, ${iIdx})" class="no-print text-[11px] text-[#2E7D8B] hover:underline">
+                        ${item.distInfo ? '↻ คำนวณใหม่' : '+ คำนวณระยะทางจากจุดก่อนหน้า'}
+                      </button>
+                    </div>
+                  ` : ''}
+
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div class="flex items-start gap-2.5 flex-1">
+                      <input value="${item.time}" onchange="editItem(${dIdx}, ${iIdx}, 'time', this.value)"
+                        class="w-24 shrink-0 text-xs font-bold text-[#2E7D8B] bg-[#F2F7F8] px-2 py-1 rounded text-center outline-none focus:ring-1 focus:ring-[#2E7D8B]" />
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1.5">
+                          <input value="${item.title}" onchange="editItem(${dIdx}, ${iIdx}, 'title', this.value)"
+                            class="font-semibold text-sm text-slate-800 flex-1 outline-none focus:bg-slate-100 rounded px-1" />
+                          <button onclick="editMapQuery(${dIdx}, ${iIdx})" title="ระบุชื่อพิกัดสำหรับคำนวณระยะทาง (${item.mapQuery || 'ยังไม่ระบุ'})" class="no-print text-xs px-1.5 py-0.5 rounded bg-slate-100 hover:bg-cyan-100 text-slate-600">
+                            📍
+                          </button>
+                          <a href="${gmapLink}" target="_blank" title="เปิดดูใน Google Maps" class="no-print text-[11px] text-cyan-700 hover:underline shrink-0">
+                            Maps ↗
+                          </a>
+                        </div>
+                        <input value="${item.desc}" onchange="editItem(${dIdx}, ${iIdx}, 'desc', this.value)" placeholder="เพิ่มรายละเอียด..."
+                          class="text-xs text-slate-500 w-full outline-none focus:bg-slate-100 rounded px-1 mt-0.5" />
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-1.5 pl-24 sm:pl-0">
+                      <input type="number" value="${item.cost}" onchange="editItem(${dIdx}, ${iIdx}, 'cost', this.value)"
+                        class="w-20 text-right text-sm font-semibold text-teal-700 border border-slate-200 rounded px-2 py-0.5 outline-none focus:border-[#2E7D8B]" />
+                      <span class="text-xs text-slate-400">฿</span>
+                      <button onclick="moveItem(${dIdx}, ${iIdx}, -1)" title="เลื่อนขึ้น" class="no-print text-slate-400 hover:text-slate-700 px-1 text-xs">▲</button>
+                      <button onclick="moveItem(${dIdx}, ${iIdx}, 1)" title="เลื่อนลง" class="no-print text-slate-400 hover:text-slate-700 px-1 text-xs">▼</button>
+                      <button onclick="removeItem(${dIdx}, ${iIdx})" title="ลบ" class="no-print text-slate-300 hover:text-rose-500 px-1 text-xs">✕</button>
                     </div>
                   </div>
-                  <div class="flex items-center justify-end gap-1.5 pl-24 sm:pl-0">
-                    <input type="number" value="${item.cost}" onchange="editItem(${dIdx}, ${iIdx}, 'cost', this.value)"
-                      class="w-20 text-right text-sm font-semibold text-teal-700 border border-slate-200 rounded px-2 py-0.5 outline-none focus:border-[#2E7D8B]" />
-                    <span class="text-xs text-slate-400">฿</span>
-                    <button onclick="moveItem(${dIdx}, ${iIdx}, -1)" title="เลื่อนขึ้น" class="no-print text-slate-400 hover:text-slate-700 px-1 text-xs">▲</button>
-                    <button onclick="moveItem(${dIdx}, ${iIdx}, 1)" title="เลื่อนลง" class="no-print text-slate-400 hover:text-slate-700 px-1 text-xs">▼</button>
-                    <button onclick="removeItem(${dIdx}, ${iIdx})" title="ลบ" class="no-print text-slate-300 hover:text-rose-500 px-1 text-xs">✕</button>
-                  </div>
                 </div>
-              `).join('')}
+              `}).join('')}
 
               <div class="pt-3 no-print">
                 <button onclick="addItem(${dIdx})" class="text-xs font-semibold text-[#2E7D8B] hover:text-[#1E4D5C] flex items-center gap-1">
@@ -369,7 +506,6 @@
               </div>
             </div>
 
-            <!-- Right 4 cols: Photo Slots -->
             <div class="lg:col-span-4 bg-slate-50 border-t lg:border-t-0 lg:border-l border-slate-200 p-4 flex flex-col justify-between gap-4">
               <div class="text-xs font-semibold text-slate-500 text-center">รูปภาพความทรงจำ / ตัวอย่างสถานที่</div>
               <div class="space-y-4 flex-1 flex flex-col justify-center">
@@ -421,7 +557,7 @@
         id: 'day' + Date.now(),
         title: `DAY ${n} : ระบุเส้นทางเดินทาง`,
         stay: 'ระบุที่พัก',
-        items: [{ id: Date.now().toString(), time: '09:00', title: 'กิจกรรมแรก', desc: 'รายละเอียด', cost: 0 }],
+        items: [{ id: Date.now().toString(), time: '09:00', title: 'กิจกรรมแรก', mapQuery: '', desc: 'รายละเอียด', cost: 0, distInfo: '' }],
         photos: [{ caption: 'รูปที่ 1', url: '' }, { caption: 'รูปที่ 2', url: '' }]
       });
       renderDays(); saveState();
@@ -437,7 +573,7 @@
       saveState();
     }
     function addItem(dIdx) {
-      state.days[dIdx].items.push({ id: Date.now().toString(), time: 'เวลา', title: 'ชื่อสถานที่ / กิจกรรมใหม่', desc: '', cost: 0 });
+      state.days[dIdx].items.push({ id: Date.now().toString(), time: 'เวลา', title: 'ชื่อสถานที่ / กิจกรรมใหม่', mapQuery: '', desc: '', cost: 0, distInfo: '' });
       renderDays(); saveState();
     }
     function removeItem(dIdx, iIdx) {
@@ -452,7 +588,6 @@
       renderDays(); saveState();
     }
 
-    // ย่อขนาดรูปอัตโนมัติก่อนเก็บลง Database เพื่อไม่ให้ไฟล์ใหญ่เกินไปและโหลดไว
     function uploadPhoto(dIdx, pIdx, input) {
       const file = input.files[0];
       if (!file) return;

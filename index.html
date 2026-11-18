@@ -181,7 +181,7 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <input id="mCost" type="number" placeholder="จำนวนเงิน (เช่น 150000)"
+          <input id="mCost" type="number" placeholder="จำนวนเงินรวมของบิลนี้"
             class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#334155]" />
           <select id="mCurrency" class="bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs outline-none">
             <option value="LAK">กีบ (LAK)</option>
@@ -196,18 +196,16 @@
 
         <div class="grid grid-cols-2 gap-2">
           <button type="button" id="btnSplitShared" onclick="setSplitMode('shared')"
-            class="py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 bg-white border-[#334155] text-slate-800">
-            <span>◉</span> หารกับเพื่อน
+            class="py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 bg-white border-[#334155] text-slate-800">
+            <span>◉</span> หารกับเพื่อนทุกคน
           </button>
           <button type="button" id="btnSplitPersonal" onclick="setSplitMode('personal')"
-            class="py-2 px-3 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 bg-white border-slate-200 text-slate-500">
+            class="py-2.5 px-3 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 bg-white border-slate-200 text-slate-500">
             <span>○</span> ไม่หาร (ส่วนตัว)
           </button>
         </div>
-
-        <div id="splitMembersBox" class="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1.5">
-          <div class="text-[11px] text-slate-500 font-medium">เลือกผู้ร่วมหารบิลนี้:</div>
-          <div id="splitMembersCheckboxes" class="space-y-1.5"></div>
+        <div id="splitHintText" class="text-[11px] text-slate-500 text-center">
+          ระบบจะหารยอดนี้เท่ากันทุกคนตามจำนวนสมาชิกในทริปอัตโนมัติ
         </div>
       </div>
 
@@ -261,7 +259,7 @@
     // =========================================================================
     const SUPABASE_URL = 'https://dpnjxiubushiltkhruip.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_shO55VWbtMIy-rcQUy0FGQ_uXvNRhKj';
-    const TRIP_ID = 'laos-3d2n-mobile-v2';
+    const TRIP_ID = 'laos-3d2n-mobile-v3';
 
     const isConfigured = SUPABASE_URL.startsWith('http');
     const sb = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
@@ -276,7 +274,7 @@
         { id: 'm2', name: 'เพื่อนร่วมทริป 2', role: 'สมาชิก', emoji: '🐻', avatarUrl: '' }
       ],
       centralFund: [],
-      notes: `📌 สิ่งที่ต้องเตรียม:\n- พาสปอร์ต (อายุเหลือมากกว่า 6 เดือน)\n- ตั๋วเครื่องบินไป-กลับ (~3,000 บาท)\n- ซิมเน็ต / โรมมิ่งลาว\n- ค่าธรรมเนียมข้ามด่านฝั่งลาว (~100 บาท/คน)\n- รองเท้าผ้าใบสำหรับขึ้นจุดชมวิวผาหนามไซ`,
+      notes: `📌 สิ่งที่ต้องเตรียม:\n- พาสปอร์ต (อายุเหลือมากกว่า 6 เดือน)\n- ตั๋วเครื่องบินไป-กลับ (~3,000 บาท แยกเป็นค่าใช้จ่ายส่วนตัว)\n- ซิมเน็ต / โรมมิ่งลาว\n- ค่าธรรมเนียมข้ามด่านฝั่งลาว (~100 บาท/คน)\n- รองเท้าผ้าใบสำหรับขึ้นจุดชมวิวผาหนามไซ`,
       messages: [
         { id: 'msg1', senderId: 'm2', text: 'สวัสดีทุกคน! พร้อมไปเที่ยวลาวกันยังง 🇱🇦✨', time: '10:00' },
         { id: 'msg2', senderId: 'm1', text: 'พร้อมมากก แพลน 3 วัน 2 คืน วังเวียง-เมืองเฟือง-เวียงจันทน์ ครบแล้วจ้า', time: '10:02' }
@@ -287,12 +285,12 @@
           label: 'Day 1',
           route: 'อุดรฯ -> หนองคาย -> วังเวียง (17 July)',
           items: [
-            { id: 'i1', icon: '✈️', timeStart: '06:20', timeEnd: '07:20', transport: '✈️ เครื่องบิน', category: '🚄 ค่าเดินทาง', title: 'บินเช้าถึงสนามบินอุดรธานี', cost: 3000, currency: 'THB', payerId: 'm1', splitMode: 'personal', splitWith: ['m1'], note: 'รับกระเป๋า เจอกันที่รถตู้ (07:30 ออกเดินทางไปด่านหนองคาย 60 กม. ~1 ชม.)', mapQuery: 'Udon Thani International Airport', bookingUrl: '', photo: '' },
-            { id: 'i2', icon: '🍜', timeStart: '09:00', timeEnd: '10:30', transport: '🚐 รถตู้เหมา', category: '🍜 ค่าอาหาร', title: 'อาหารเช้าหนองคาย & ทำเรื่องข้ามด่าน', cost: 440, currency: 'THB', payerId: 'm1', splitMode: 'shared', splitWith: ['m1', 'm2'], note: 'ข้ามด่าน ~30 นาที | ค่าประทับตราฝั่งลาว ~100 บาท/คน', mapQuery: 'Thai-Lao Friendship Bridge Nong Khai', bookingUrl: '', photo: '' },
-            { id: 'i3', icon: '🚐', timeStart: '10:30', timeEnd: '13:00', transport: '🚐 รถตู้เหมา', category: '🚄 ค่าเดินทาง', title: 'เดินทางจากด่านไปวังเวียง (ทางด่วน)', cost: 400, currency: 'THB', payerId: 'm1', splitMode: 'shared', splitWith: ['m1', 'm2'], note: 'ระยะทาง 150 กม. (~2.30 ชม.) ถึงวังเวียงแวะทานข้าวกลางวัน', mapQuery: 'Vang Vieng, Laos', bookingUrl: '', photo: '' },
-            { id: 'i4', icon: '🎈', timeStart: '14:00', timeEnd: '16:30', transport: '📍 กิจกรรม ณ จุดหมาย', category: '🏞️ ค่าเข้า/กิจกรรม', title: 'Sky Club & จุดชมวิวผาหนามไซ', cost: 170000, currency: 'LAK', payerId: 'm1', splitMode: 'shared', splitWith: ['m1', 'm2'], note: 'Sky Club ค่าเข้า 80 บ. (ขึ้นบอลลูน ~4,000 บ.) | ผาหนามไซ ~30,000 กีบ', mapQuery: 'Pha Ngern Viewpoint Vang Vieng', bookingUrl: 'https://www.google.com/search?q=Sky+Club+Vang+Vieng', photo: '' },
-            { id: 'i5', icon: '🛶', timeStart: '16:30', timeEnd: '18:30', transport: '🛶 ล่องเรือ / แพ', category: '🏞️ ค่าเข้า/กิจกรรม', title: 'บลูลากูน & ล่องเรือแม่น้ำซอง', cost: 340, currency: 'THB', payerId: 'm2', splitMode: 'shared', splitWith: ['m1', 'm2'], note: 'บลูลากูน ~20,000 กีบ | ล่องเรือแม่น้ำซอง ~270 บาท / 2 คน', mapQuery: 'Blue Lagoon 1 Vang Vieng', bookingUrl: '', photo: '' },
-            { id: 'i6', icon: '🏨', timeStart: '18:30', timeEnd: '21:00', transport: '📍 กิจกรรม ณ จุดหมาย', category: '🏨 ค่าที่พัก', title: 'ที่พักวังเวียง คืนที่ 1 (Vieng Tara / Amari)', cost: 2200, currency: 'THB', payerId: 'm1', splitMode: 'shared', splitWith: ['m1', 'm2'], note: 'แวะคาเฟ่วังเวียง + Check-in ที่พัก + ทานอาหารเย็น', mapQuery: 'Vang Vieng Hotels', bookingUrl: 'https://www.agoda.com/th-th/city/vang-vieng-la.html', photo: '' }
+            { id: 'i1', icon: '✈️', timeStart: '06:20', timeEnd: '07:20', transport: '✈️ เครื่องบิน', category: '🚄 ค่าเดินทาง', title: 'ค่าตั๋วเครื่องบินไป-กลับ (อุดรธานี)', cost: 3000, currency: 'THB', payerId: 'm1', splitMode: 'personal', note: 'ค่าตั๋วเครื่องบินแยกเป็นค่าใช้จ่ายส่วนตัวของแต่ละคน', mapQuery: 'Udon Thani International Airport', bookingUrl: '', photo: '' },
+            { id: 'i2', icon: '🍜', timeStart: '09:00', timeEnd: '10:30', transport: '🚐 รถตู้เหมา', category: '🍜 ค่าอาหาร', title: 'อาหารเช้าหนองคาย & ทำเรื่องข้ามด่าน', cost: 440, currency: 'THB', payerId: 'm1', splitMode: 'shared', note: 'ข้ามด่าน ~30 นาที | ค่าประทับตราฝั่งลาว ~100 บาท/คน', mapQuery: 'Thai-Lao Friendship Bridge Nong Khai', bookingUrl: '', photo: '' },
+            { id: 'i3', icon: '🚐', timeStart: '10:30', timeEnd: '13:00', transport: '🚐 รถตู้เหมา', category: '🚄 ค่าเดินทาง', title: 'เดินทางจากด่านไปวังเวียง (ทางด่วน)', cost: 400, currency: 'THB', payerId: 'm1', splitMode: 'shared', note: 'ระยะทาง 150 กม. (~2.30 ชม.) ถึงวังเวียงแวะทานข้าวกลางวัน', mapQuery: 'Vang Vieng, Laos', bookingUrl: '', photo: '' },
+            { id: 'i4', icon: '🎈', timeStart: '14:00', timeEnd: '16:30', transport: '📍 กิจกรรม ณ จุดหมาย', category: '🏞️ ค่าเข้า/กิจกรรม', title: 'Sky Club & จุดชมวิวผาหนามไซ', cost: 170000, currency: 'LAK', payerId: 'm1', splitMode: 'shared', note: 'Sky Club ค่าเข้า 80 บ. (ขึ้นบอลลูน ~4,000 บ.) | ผาหนามไซ ~30,000 กีบ', mapQuery: 'Pha Ngern Viewpoint Vang Vieng', bookingUrl: 'https://www.google.com/search?q=Sky+Club+Vang+Vieng', photo: '' },
+            { id: 'i5', icon: '🛶', timeStart: '16:30', timeEnd: '18:30', transport: '🛶 ล่องเรือ / แพ', category: '🏞️ ค่าเข้า/กิจกรรม', title: 'บลูลากูน & ล่องเรือแม่น้ำซอง', cost: 340, currency: 'THB', payerId: 'm2', splitMode: 'shared', note: 'บลูลากูน ~20,000 กีบ | ล่องเรือแม่น้ำซอง ~270 บาท / 2 คน', mapQuery: 'Blue Lagoon 1 Vang Vieng', bookingUrl: '', photo: '' },
+            { id: 'i6', icon: '🏨', timeStart: '18:30', timeEnd: '21:00', transport: '📍 กิจกรรม ณ จุดหมาย', category: '🏨 ค่าที่พัก', title: 'ที่พักวังเวียง คืนที่ 1 (Vieng Tara / Amari)', cost: 2200, currency: 'THB', payerId: 'm1', splitMode: 'shared', note: 'แวะคาเฟ่วังเวียง + Check-in ที่พัก + ทานอาหารเย็น', mapQuery: 'Vang Vieng Hotels', bookingUrl: 'https://www.agoda.com/th-th/city/vang-vieng-la.html', photo: '' }
           ]
         },
         {
@@ -300,10 +298,10 @@
           label: 'Day 2',
           route: 'วังเวียง -> เมืองเฟือง (18 July)',
           items: [
-            { id: 'i2_1', icon: '☕', timeStart: '08:00', timeEnd: '10:30', transport: '🚐 รถตู้เหมา', category: '☕ คาเฟ่/ของฝาก', title: 'เช็คเอาท์ & เที่ยวเก็บตกช่วงเช้า', cost: 200, currency: 'THB', payerId: 'm2', splitMode: 'shared', splitWith: ['m1', 'm2'], note: 'แวะถ้ำจัง / สะพานส้ม / คาเฟ่เช้าก่อนออกจากวังเวียง', mapQuery: 'Tham Chang Cave Vang Vieng', bookingUrl: '', photo: '' },
-            { id: 'i2_2', icon: '🚐', timeStart: '10:30', timeEnd: '13:00', transport: '🚐 รถตู้เหมา', category: '🚄 ค่าเดินทาง', title: 'เดินทางจาก วังเวียง ไป เมืองเฟือง', cost: 0, currency: 'THB', payerId: 'm1', splitMode: 'shared', splitWith: ['m1', 'm2'], note: 'ระยะทาง 100 กม. (~2.30 ชม.)', mapQuery: 'Muang Feuang, Laos', bookingUrl: '', photo: '' },
-            { id: 'i2_3', icon: '🛶', timeStart: '13:00', timeEnd: '17:30', transport: '🛶 ล่องเรือ / แพ', category: '🏞️ ค่าเข้า/กิจกรรม', title: 'ล่องแพแม่น้ำลีก & วัดสินไชยาราม', cost: 300000, currency: 'LAK', payerId: 'm1', splitMode: 'shared', splitWith: ['m1', 'm2'], note: 'พายคายัค / ล่องแพชมวิวภูเขาหินปูน / ไหว้พระวัดสินไชยาราม', mapQuery: 'Muang Feuang, Laos', bookingUrl: '', photo: '' },
-            { id: 'i2_4', icon: '🏨', timeStart: '18:00', timeEnd: '21:00', transport: '📍 กิจกรรม ณ จุดหมาย', category: '🏨 ค่าที่พัก', title: 'แพริมน้ำเมืองเฟือง คืนที่ 2 + หมูกระทะ', cost: 2600, currency: 'THB', payerId: 'm1', splitMode: 'shared', splitWith: ['m1', 'm2'], note: 'สั่งจองชุดตักบาตรริมน้ำกับที่พักสำหรับเช้าพรุ่งนี้ (~60,000 กีบ)', mapQuery: 'Muang Feuang Riverside Resort', bookingUrl: 'https://www.google.com/search?q=ที่พักแพริมน้ำ+เมืองเฟือง+ลาว', photo: '' }
+            { id: 'i2_1', icon: '☕', timeStart: '08:00', timeEnd: '10:30', transport: '🚐 รถตู้เหมา', category: '☕ คาเฟ่/ของฝาก', title: 'เช็คเอาท์ & เที่ยวเก็บตกช่วงเช้า', cost: 200, currency: 'THB', payerId: 'm2', splitMode: 'shared', note: 'แวะถ้ำจัง / สะพานส้ม / คาเฟ่เช้าก่อนออกจากวังเวียง', mapQuery: 'Tham Chang Cave Vang Vieng', bookingUrl: '', photo: '' },
+            { id: 'i2_2', icon: '🚐', timeStart: '10:30', timeEnd: '13:00', transport: '🚐 รถตู้เหมา', category: '🚄 ค่าเดินทาง', title: 'เดินทางจาก วังเวียง ไป เมืองเฟือง', cost: 0, currency: 'THB', payerId: 'm1', splitMode: 'shared', note: 'ระยะทาง 100 กม. (~2.30 ชม.)', mapQuery: 'Muang Feuang, Laos', bookingUrl: '', photo: '' },
+            { id: 'i2_3', icon: '🛶', timeStart: '13:00', timeEnd: '17:30', transport: '🛶 ล่องเรือ / แพ', category: '🏞️ ค่าเข้า/กิจกรรม', title: 'ล่องแพแม่น้ำลีก & วัดสินไชยาราม', cost: 300000, currency: 'LAK', payerId: 'm1', splitMode: 'shared', note: 'พายคายัค / ล่องแพชมวิวภูเขาหินปูน / ไหว้พระวัดสินไชยาราม', mapQuery: 'Muang Feuang, Laos', bookingUrl: '', photo: '' },
+            { id: 'i2_4', icon: '🏨', timeStart: '18:00', timeEnd: '21:00', transport: '📍 กิจกรรม ณ จุดหมาย', category: '🏨 ค่าที่พัก', title: 'แพริมน้ำเมืองเฟือง คืนที่ 2 + หมูกระทะ', cost: 2600, currency: 'THB', payerId: 'm1', splitMode: 'shared', note: 'สั่งจองชุดตักบาตรริมน้ำกับที่พักสำหรับเช้าพรุ่งนี้ (~60,000 กีบ)', mapQuery: 'Muang Feuang Riverside Resort', bookingUrl: 'https://www.google.com/search?q=ที่พักแพริมน้ำ+เมืองเฟือง+ลาว', photo: '' }
           ]
         },
         {
@@ -311,10 +309,10 @@
           label: 'Day 3',
           route: 'เมืองเฟือง -> เวียงจันทน์ -> สนามบินอุดรฯ (19 July)',
           items: [
-            { id: 'i3_1', icon: '🛕', timeStart: '06:30', timeEnd: '09:00', transport: '📍 กิจกรรม ณ จุดหมาย', category: '🏞️ ค่าเข้า/กิจกรรม', title: 'ตักบาตรพระสงฆ์ริมน้ำยามเช้า + เช็คเอาท์', cost: 120000, currency: 'LAK', payerId: 'm2', splitMode: 'shared', splitWith: ['m1', 'm2'], note: 'พระพายเรือรับบาตรหน้าแพ + ทานอาหารเช้าที่พัก', mapQuery: 'Muang Feuang, Laos', bookingUrl: '', photo: '' },
-            { id: 'i3_2', icon: '🚐', timeStart: '09:30', timeEnd: '12:00', transport: '🚐 รถตู้เหมา', category: '🚄 ค่าเดินทาง', title: 'เดินทางจาก เมืองเฟือง ไป เวียงจันทน์', cost: 0, currency: 'THB', payerId: 'm1', splitMode: 'shared', splitWith: ['m1', 'm2'], note: 'ระยะทาง 140 กม. (~2.30 ชม.) ถึงเวียงจันทน์ทานมื้อกลางวัน', mapQuery: 'Vientiane, Laos', bookingUrl: '', photo: '' },
-            { id: 'i3_3', icon: '🛕', timeStart: '13:00', timeEnd: '15:30', transport: '🚐 รถตู้เหมา', category: '🏞️ ค่าเข้า/กิจกรรม', title: 'พระธาตุหลวง & ประตูชัย & คาเฟ่เวียงจันทน์', cost: 120000, currency: 'LAK', payerId: 'm1', splitMode: 'shared', splitWith: ['m1', 'm2'], note: 'ค่าเข้าด้านในจุดละ ~30,000 กีบ | แวะ Joma Bakery ซื้อของฝาก', mapQuery: 'Pha That Luang Vientiane', bookingUrl: '', photo: '' },
-            { id: 'i3_4', icon: '✈️', timeStart: '15:30', timeEnd: '19:20', transport: '🚐 รถตู้เหมา', category: '🚄 ค่าเดินทาง', title: 'ข้ามด่านหนองคาย -> สนามบินอุดรธานี', cost: 100, currency: 'THB', payerId: 'm1', splitMode: 'shared', splitWith: ['m1', 'm2'], note: '18:30 ถึงสนามบินอุดรฯ | 19:20 ขึ้นเครื่องกลับโดยสวัสดิภาพ', mapQuery: 'Udon Thani International Airport', bookingUrl: '', photo: '' }
+            { id: 'i3_1', icon: '🛕', timeStart: '06:30', timeEnd: '09:00', transport: '📍 กิจกรรม ณ จุดหมาย', category: '🏞️ ค่าเข้า/กิจกรรม', title: 'ตักบาตรพระสงฆ์ริมน้ำยามเช้า + เช็คเอาท์', cost: 120000, currency: 'LAK', payerId: 'm2', splitMode: 'shared', note: 'พระพายเรือรับบาตรหน้าแพ + ทานอาหารเช้าที่พัก', mapQuery: 'Muang Feuang, Laos', bookingUrl: '', photo: '' },
+            { id: 'i3_2', icon: '🚐', timeStart: '09:30', timeEnd: '12:00', transport: '🚐 รถตู้เหมา', category: '🚄 ค่าเดินทาง', title: 'เดินทางจาก เมืองเฟือง ไป เวียงจันทน์', cost: 0, currency: 'THB', payerId: 'm1', splitMode: 'shared', note: 'ระยะทาง 140 กม. (~2.30 ชม.) ถึงเวียงจันทน์ทานมื้อกลางวัน', mapQuery: 'Vientiane, Laos', bookingUrl: '', photo: '' },
+            { id: 'i3_3', icon: '🛕', timeStart: '13:00', timeEnd: '15:30', transport: '🚐 รถตู้เหมา', category: '🏞️ ค่าเข้า/กิจกรรม', title: 'พระธาตุหลวง & ประตูชัย & คาเฟ่เวียงจันทน์', cost: 120000, currency: 'LAK', payerId: 'm1', splitMode: 'shared', note: 'ค่าเข้าด้านในจุดละ ~30,000 กีบ | แวะ Joma Bakery ซื้อของฝาก', mapQuery: 'Pha That Luang Vientiane', bookingUrl: '', photo: '' },
+            { id: 'i3_4', icon: '✈️', timeStart: '15:30', timeEnd: '19:20', transport: '🚐 รถตู้เหมา', category: '🚄 ค่าเดินทาง', title: 'ข้ามด่านหนองคาย -> สนามบินอุดรธานี', cost: 100, currency: 'THB', payerId: 'm1', splitMode: 'shared', note: '18:30 ถึงสนามบินอุดรฯ | 19:20 ขึ้นเครื่องกลับโดยสวัสดิภาพ', mapQuery: 'Udon Thani International Airport', bookingUrl: '', photo: '' }
           ]
         }
       ]
@@ -327,7 +325,6 @@
     let modalSplitMode = 'shared';
     let saveTimer = null;
 
-    // เสียงติ๊งแจ้งเตือนเบาๆ เวลาได้ข้อความใหม่
     function playPingSound() {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -344,7 +341,6 @@
       } catch (e) {}
     }
 
-    // ขออนุญาตแจ้งเตือนหน้าจอโทรศัพท์
     async function enableBrowserNotifications() {
       if (!('Notification' in window)) {
         return alert('เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือนครับ');
@@ -397,7 +393,7 @@
         }
         setSyncText('ซิงก์เรียลไทม์', true);
 
-        sb.channel('sabai-realtime-v2')
+        sb.channel('sabai-realtime-v3')
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trip_plans', filter: `id=eq.${TRIP_ID}` }, payload => {
             if (payload.new && payload.new.data) {
               triggerIncomingNotification(payload.new.data);
@@ -408,7 +404,7 @@
           })
           .subscribe();
       } else {
-        const saved = localStorage.getItem('sabai_mobile_v2_offline');
+        const saved = localStorage.getItem('sabai_mobile_v3_offline');
         if (saved) state = JSON.parse(saved);
         setSyncText('โหมดออฟไลน์ (ยังไม่ได้ใส่คีย์)', false);
       }
@@ -429,7 +425,7 @@
           await sb.from('trip_plans').upsert({ id: TRIP_ID, data: state, updated_at: new Date().toISOString() });
           setSyncText('ซิงก์เรียลไทม์', true);
         } else {
-          localStorage.setItem('sabai_mobile_v2_offline', JSON.stringify(state));
+          localStorage.setItem('sabai_mobile_v3_offline', JSON.stringify(state));
           setSyncText('บันทึกในเครื่องแล้ว', false);
         }
       }, 300);
@@ -487,6 +483,7 @@
     // ==================== TAB 1: แพลนเที่ยว ====================
     function renderPlanTab() {
       const day = state.days[state.activeDayIdx] || state.days[0];
+      const memberCount = state.members.length;
       return `
         <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
           ${state.days.map((d, idx) => `
@@ -521,7 +518,6 @@
             const unitLabel = item.currency === 'LAK' ? 'LAK' : 'THB';
             const payer = getMemberById(item.payerId);
             const isShared = item.splitMode === 'shared';
-            const splitCount = isShared ? (item.splitWith ? item.splitWith.length : state.members.length) : 1;
 
             const isHotel = (item.category || '').includes('ที่พัก');
             const rawUrl = (item.bookingUrl || '').trim();
@@ -556,12 +552,12 @@
                   <div class="flex items-center justify-between">
                     <span class="text-slate-500">${item.category}</span>
                     <span class="font-bold text-sm text-slate-800">${costFormatted} ${unitLabel}</span>
-                    <span class="text-[11px] px-2 py-0.5 rounded-full ${isShared ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700'}">
-                      ${isShared ? `หารร่วมกัน (${splitCount} คน)` : 'ส่วนตัว (ไม่หาร)'}
+                    <span class="text-[11px] px-2 py-0.5 rounded-full ${isShared ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800'}">
+                      ${isShared ? `หารเท่ากัน (${memberCount} คน)` : 'ส่วนตัว (ไม่หาร)'}
                     </span>
                   </div>
                   <div class="flex items-center justify-between pt-1.5 border-t border-slate-200/60">
-                    <span class="text-slate-500">สำรองจ่าย:</span>
+                    <span class="text-slate-500">${isShared ? 'สำรองจ่าย:' : 'ผู้จ่าย:'}</span>
                     <span class="font-semibold text-slate-700 flex items-center gap-1.5">
                       <span class="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] flex items-center justify-center overflow-hidden">
                         ${payer.avatarUrl ? `<img src="${payer.avatarUrl}" class="w-full h-full object-cover"/>` : (payer.emoji || payer.name.charAt(0))}
@@ -604,12 +600,13 @@
     // ==================== TAB 2: ค่าใช้จ่าย ====================
     function renderExpenseTab() {
       const rate = Number(state.exchangeRate) || 650;
+      const memberCount = Math.max(1, state.members.length);
       let totalThb = 0;
       const catTotals = {};
 
       const memberStats = {};
       state.members.forEach(m => {
-        memberStats[m.id] = { member: m, paid: 0, share: 0, net: 0 };
+        memberStats[m.id] = { member: m, paid: 0, share: 0, personal: 0, net: 0 };
       });
 
       state.days.forEach(d => {
@@ -624,13 +621,14 @@
           memberStats[payerId].paid += thb;
 
           if (item.splitMode === 'shared') {
-            const validSplitIds = (item.splitWith || []).filter(id => memberStats[id]);
-            const targets = validSplitIds.length > 0 ? validSplitIds : state.members.map(m => m.id);
-            const perHead = thb / targets.length;
-            targets.forEach(uid => {
-              memberStats[uid].share += perHead;
+            // หารเท่ากันทุกคนตามจำนวนสมาชิกในทริป
+            const perHead = thb / memberCount;
+            state.members.forEach(m => {
+              memberStats[m.id].share += perHead;
             });
           } else {
+            // ค่าใช้จ่ายส่วนตัว (เช่น ค่าเครื่องบิน) -> คิดเฉพาะคนจ่ายคนเดียว ไม่กระทบยอดโอนกับเพื่อน
+            memberStats[payerId].personal += thb;
             memberStats[payerId].share += thb;
           }
         });
@@ -734,7 +732,7 @@
         </div>
 
         <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
-          <h3 class="font-bold text-sm text-slate-800">🤝 สรุปยอดโอนเคลียร์บิล</h3>
+          <h3 class="font-bold text-sm text-slate-800">🤝 สรุปยอดโอนเคลียร์บิล (หาร ${memberCount} คน)</h3>
           ${settlements.length > 0 ? `
             <div class="space-y-2">
               ${settlements.map(s => `
@@ -773,14 +771,15 @@
                     <div class="min-w-0">
                       <div class="font-bold text-xs text-slate-800 truncate">${st.member.name}</div>
                       <div class="text-[11px] text-slate-400">
-                        สำรองจ่าย ฿${Math.round(st.paid).toLocaleString()} • ส่วนแบ่ง ฿${Math.round(st.share).toLocaleString()}
+                        จ่ายจริง ฿${Math.round(st.paid).toLocaleString()} • ยอดของตัวเอง ฿${Math.round(st.share).toLocaleString()}
+                        ${st.personal > 0 ? `<br/><span class="text-purple-600">(รวมค่าใช้จ่ายส่วนตัว ฿${Math.round(st.personal).toLocaleString()})</span>` : ''}
                       </div>
                     </div>
                   </div>
                   <div class="text-right shrink-0">
                     <div class="font-bold text-sm ${badgeColor}">${sign}฿${Math.abs(netRounded).toLocaleString()}</div>
                     <div class="text-[10px] text-slate-400">
-                      ${isPositive ? 'รอรับเงินคืน' : (isNegative ? 'ต้องโอนเพิ่ม' : 'พอดีแล้ว')}
+                      ${isPositive ? 'รอรับเงินคืน' : (isNegative ? 'ต้องโอนเพิ่ม' : 'เคลียร์ครบแล้ว')}
                     </div>
                   </div>
                 </div>
@@ -798,7 +797,7 @@
           <div class="flex items-center justify-between">
             <div>
               <h2 class="font-bold text-base text-slate-800">สมาชิกผู้ร่วมทริป</h2>
-              <p class="text-[11px] text-slate-400">จำกัดสมาชิกแต่ละทริปไม่เกิน 10 คน</p>
+              <p class="text-[11px] text-slate-400">ระบบจะหารค่าใช้จ่ายส่วนกลางตามจำนวนสมาชิกอัตโนมัติ</p>
             </div>
             <span class="text-xs font-bold text-slate-700">${state.members.length}/10 คน</span>
           </div>
@@ -857,7 +856,7 @@
       `;
     }
 
-    // ==================== TAB 4: แชทกลุ่ม (แก้ตัวเลือกผู้ส่ง + ปุ่มแจ้งเตือน) ====================
+    // ==================== TAB 4: แชทกลุ่ม ====================
     function renderChatTab() {
       const me = getActiveUser();
       const notifSupported = ('Notification' in window);
@@ -904,7 +903,6 @@
           }).join('')}
         </div>
 
-        <!-- กล่องพิมพ์ข้อความ + Dropdown เปลี่ยนชื่อผู้ส่งได้ทันที -->
         <div class="flex items-center gap-2">
           <select onchange="selectAsMe(this.value)" title="เลือกชื่อผู้ส่งแชท"
             class="bg-white border border-slate-200 rounded-2xl px-2 py-2.5 text-xs font-semibold text-slate-700 max-w-[115px] truncate outline-none">
@@ -945,19 +943,19 @@
       modalSplitMode = mode;
       const btnShared = document.getElementById('btnSplitShared');
       const btnPersonal = document.getElementById('btnSplitPersonal');
-      const box = document.getElementById('splitMembersBox');
+      const hint = document.getElementById('splitHintText');
       if (mode === 'shared') {
-        btnShared.className = 'py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 bg-white border-[#334155] text-slate-800';
-        btnShared.innerHTML = '<span>◉</span> หารกับเพื่อน';
-        btnPersonal.className = 'py-2 px-3 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 bg-white border-slate-200 text-slate-500';
+        btnShared.className = 'py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 bg-white border-[#334155] text-slate-800';
+        btnShared.innerHTML = '<span>◉</span> หารกับเพื่อนทุกคน';
+        btnPersonal.className = 'py-2.5 px-3 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 bg-white border-slate-200 text-slate-500';
         btnPersonal.innerHTML = '<span>○</span> ไม่หาร (ส่วนตัว)';
-        box.classList.remove('hidden');
+        hint.innerText = `ระบบจะหารยอดนี้เท่ากันทุกคน (${state.members.length} คน) อัตโนมัติ`;
       } else {
-        btnPersonal.className = 'py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 bg-white border-[#334155] text-slate-800';
+        btnPersonal.className = 'py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 bg-white border-[#334155] text-slate-800';
         btnPersonal.innerHTML = '<span>◉</span> ไม่หาร (ส่วนตัว)';
-        btnShared.className = 'py-2 px-3 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 bg-white border-slate-200 text-slate-500';
-        btnShared.innerHTML = '<span>○</span> หารกับเพื่อน';
-        box.classList.add('hidden');
+        btnShared.className = 'py-2.5 px-3 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 bg-white border-slate-200 text-slate-500';
+        btnShared.innerHTML = '<span>○</span> หารกับเพื่อนทุกคน';
+        hint.innerText = 'รายการนี้คิดเป็นค่าใช้จ่ายส่วนตัวของผู้จ่ายคนเดียว ไม่นำไปหารกับเพื่อน';
       }
     }
 
@@ -965,8 +963,6 @@
       document.getElementById('editItemIdx').value = idx;
       const payerSel = document.getElementById('mPayerId');
       payerSel.innerHTML = state.members.map(m => `<option value="${m.id}">${m.emoji || '🐰'} ${m.name}</option>`).join('');
-
-      let checkedIds = state.members.map(m => m.id);
 
       if (idx >= 0) {
         const item = state.days[state.activeDayIdx].items[idx];
@@ -985,7 +981,6 @@
         document.getElementById('mNote').value = item.note || '';
         tempModalPhoto = item.photo || '';
         document.getElementById('mPhotoUrl').value = (item.photo && item.photo.startsWith('http')) ? item.photo : '';
-        checkedIds = item.splitWith || state.members.map(m => m.id);
         setSplitMode(item.splitMode || 'shared');
       } else {
         document.getElementById('modalTitle').innerText = 'เพิ่มแพลนเที่ยวใหม่';
@@ -1005,16 +1000,6 @@
         document.getElementById('mPhotoUrl').value = '';
         setSplitMode('shared');
       }
-
-      document.getElementById('splitMembersCheckboxes').innerHTML = state.members.map(m => `
-        <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200/80 bg-slate-50/50 cursor-pointer text-xs">
-          <input type="checkbox" class="split-member-cb accent-[#334155] w-4 h-4" value="${m.id}" ${checkedIds.includes(m.id) ? 'checked' : ''} />
-          <span class="w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] flex items-center justify-center overflow-hidden">
-            ${m.avatarUrl ? `<img src="${m.avatarUrl}" class="w-full h-full object-cover"/>` : (m.emoji || m.name.charAt(0))}
-          </span>
-          <span class="font-medium text-slate-700">${m.name}</span>
-        </label>
-      `).join('');
 
       updateModalPreview();
       document.getElementById('planModal').classList.remove('hidden');
@@ -1054,11 +1039,6 @@
       const title = document.getElementById('mTitle').value.trim();
       if (!title) return alert('กรุณากรอกชื่อสถานที่หรือกิจกรรมครับ');
 
-      const selectedSplitIds = Array.from(document.querySelectorAll('.split-member-cb:checked')).map(cb => cb.value);
-      if (modalSplitMode === 'shared' && selectedSplitIds.length === 0) {
-        return alert('กรุณาเลือกผู้ร่วมหารบิลอย่างน้อย 1 คนครับ');
-      }
-
       const obj = {
         id: 'i' + Date.now(),
         icon: document.getElementById('mIcon').value,
@@ -1073,7 +1053,6 @@
         currency: document.getElementById('mCurrency').value,
         payerId: document.getElementById('mPayerId').value,
         splitMode: modalSplitMode,
-        splitWith: modalSplitMode === 'shared' ? selectedSplitIds : [document.getElementById('mPayerId').value],
         note: document.getElementById('mNote').value.trim(),
         photo: tempModalPhoto
       };
@@ -1108,7 +1087,6 @@
       if (!name) return alert('กรุณาพิมพ์ชื่อเล่นเพื่อนก่อนครับ');
       const newId = 'm' + Date.now();
       state.members.push({ id: newId, name, role: 'สมาชิก', emoji, avatarUrl: '' });
-      // ตั้งค่าให้คนที่กดเพิ่มชื่อตัวเอง กลายเป็นผู้ใช้งานในเครื่องนั้นทันที
       activeUserId = newId;
       localStorage.setItem('sabai_active_user', newId);
       renderApp(); saveState();

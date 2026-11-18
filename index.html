@@ -76,14 +76,17 @@
           <span class="text-[11px]">เพื่อนทริป</span>
         </button>
         <button onclick="setTab('chat')" id="nav-chat" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 relative">
-          <span class="text-lg leading-none mb-1">💬</span>
+          <span class="text-lg leading-none mb-1 relative">
+            💬
+            <span id="chatUnreadDot" class="hidden absolute -top-0.5 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+          </span>
           <span class="text-[11px]">แชทกลุ่ม</span>
         </button>
       </div>
     </nav>
   </div>
 
-  <!-- Modal: เพิ่ม / แก้ไขแพลนเที่ยวใหม่ (ตามรูปแบบในภาพตัวอย่าง) -->
+  <!-- Modal: เพิ่ม / แก้ไขแพลนเที่ยวใหม่ -->
   <div id="planModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3.5 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between">
@@ -93,7 +96,6 @@
 
       <input type="hidden" id="editItemIdx" value="-1" />
 
-      <!-- 1. ไอคอน & ชื่อสถานที่ / กิจกรรม * -->
       <div>
         <label class="text-xs font-medium text-slate-600">ไอคอน & ชื่อสถานที่ / กิจกรรม *</label>
         <div class="flex items-center gap-2 mt-1">
@@ -114,7 +116,6 @@
         </div>
       </div>
 
-      <!-- 2. ช่วงเวลา (เริ่ม - สิ้นสุด) -->
       <div>
         <label class="text-xs font-medium text-slate-600">ช่วงเวลา (เริ่ม - สิ้นสุด)</label>
         <div class="flex items-center gap-2 mt-1">
@@ -124,7 +125,6 @@
         </div>
       </div>
 
-      <!-- 3. การเดินทาง -->
       <div>
         <label class="text-xs font-medium text-slate-600">การเดินทาง</label>
         <select id="mTransport" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none bg-white">
@@ -137,21 +137,18 @@
         </select>
       </div>
 
-      <!-- 4. ลิงก์ Google Maps (วางลิงก์หรือชื่อสถานที่) -->
       <div>
         <label class="text-xs font-medium text-slate-600">ลิงก์ Google Maps (วางลิงก์หรือชื่อสถานที่)</label>
         <input id="mMapQuery" type="text" placeholder="https://maps.google.com/... หรือ ประตูชัย เวียงจันทน์"
           class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#334155]" />
       </div>
 
-      <!-- 5. ลิงก์จองที่พัก / เว็บไซต์ (เสริม) -->
       <div>
         <label class="text-xs font-medium text-slate-600">ลิงก์จองที่พัก / เว็บไซต์ (ถ้ามี)</label>
         <input id="mBookingUrl" type="url" placeholder="https://www.agoda.com/... หรือลิงก์เพจที่พัก"
           class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#334155]" />
       </div>
 
-      <!-- 6. รูปภาพประกอบ (อัปโหลด หรือ วางลิงก์ URL) -->
       <div class="bg-slate-50/70 p-3 rounded-2xl border border-slate-200/80 space-y-2">
         <label class="text-xs font-medium text-slate-600 block">รูปภาพประกอบ (อัปโหลด หรือ วางลิงก์ URL)</label>
         <div class="flex items-center gap-2">
@@ -168,7 +165,6 @@
         </div>
       </div>
 
-      <!-- 7. ค่าใช้จ่ายสำหรับรายการนี้ (ถ้ามี) -->
       <div class="bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
         <div class="text-xs font-bold text-slate-700">ค่าใช้จ่ายสำหรับรายการนี้ (ถ้ามี)</div>
 
@@ -198,7 +194,6 @@
           <select id="mPayerId" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none bg-white"></select>
         </div>
 
-        <!-- Toggle: หารกับเพื่อน / ไม่หาร (ส่วนตัว) -->
         <div class="grid grid-cols-2 gap-2">
           <button type="button" id="btnSplitShared" onclick="setSplitMode('shared')"
             class="py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 bg-white border-[#334155] text-slate-800">
@@ -210,21 +205,18 @@
           </button>
         </div>
 
-        <!-- เลือกผู้ร่วมหารบิลนี้ -->
         <div id="splitMembersBox" class="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1.5">
           <div class="text-[11px] text-slate-500 font-medium">เลือกผู้ร่วมหารบิลนี้:</div>
           <div id="splitMembersCheckboxes" class="space-y-1.5"></div>
         </div>
       </div>
 
-      <!-- 8. หมายเหตุ (Notes) -->
       <div>
         <label class="text-xs font-medium text-slate-600">หมายเหตุ (Notes)</label>
         <textarea id="mNote" rows="2" placeholder="เช่น อย่าลืมพกพาสปอร์ต, จองตั๋วล่วงหน้า..."
           class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#334155]"></textarea>
       </div>
 
-      <!-- Bottom Buttons: ยกเลิก / บันทึกแพลนเที่ยว -->
       <div class="grid grid-cols-12 gap-2 pt-1">
         <button type="button" onclick="closePlanModal()" class="col-span-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-2xl text-xs">
           ยกเลิก
@@ -265,7 +257,7 @@
 
   <script>
     // =========================================================================
-    // ใส่ค่า PROJECT URL และ PUBLISHABLE KEY จาก Supabase ของคุณตรงนี้
+    // สำคัญ! ใส่ค่า PROJECT URL และ PUBLISHABLE KEY จาก Supabase ของคุณตรงนี้
     // =========================================================================
     const SUPABASE_URL = 'https://dpnjxiubushiltkhruip.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_shO55VWbtMIy-rcQUy0FGQ_uXvNRhKj';
@@ -335,6 +327,65 @@
     let modalSplitMode = 'shared';
     let saveTimer = null;
 
+    // เสียงติ๊งแจ้งเตือนเบาๆ เวลาได้ข้อความใหม่
+    function playPingSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+      } catch (e) {}
+    }
+
+    // ขออนุญาตแจ้งเตือนหน้าจอโทรศัพท์
+    async function enableBrowserNotifications() {
+      if (!('Notification' in window)) {
+        return alert('เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือนครับ');
+      }
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        playPingSound();
+        new Notification('Sabai Laos 3D2N', {
+          body: 'เปิดแจ้งเตือนแชทกลุ่มเรียบร้อยแล้ว!',
+          icon: 'https://cdn-icons-png.flaticon.com/512/826/826070.png'
+        });
+        renderApp();
+      } else {
+        alert('กรุณากดอนุญาต (Allow) การแจ้งเตือนในการตั้งค่าเบราว์เซอร์ครับ');
+      }
+    }
+
+    function triggerIncomingNotification(newState) {
+      const oldMsgs = state.messages || [];
+      const newMsgs = newState.messages || [];
+      if (newMsgs.length > oldMsgs.length) {
+        const lastMsg = newMsgs[newMsgs.length - 1];
+        if (lastMsg.senderId !== activeUserId) {
+          const sender = (newState.members || []).find(m => m.id === lastMsg.senderId);
+          const senderName = sender ? sender.name : 'เพื่อนร่วมทริป';
+          playPingSound();
+
+          if (currentTab !== 'chat') {
+            document.getElementById('chatUnreadDot').classList.remove('hidden');
+          }
+
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(`${senderName} ส่งข้อความในทริปลาว`, {
+              body: lastMsg.text,
+              icon: 'https://cdn-icons-png.flaticon.com/512/826/826070.png'
+            });
+          }
+        }
+      }
+    }
+
     async function init() {
       if (sb) {
         setSyncText('กำลังซิงก์...', false);
@@ -349,6 +400,7 @@
         sb.channel('sabai-realtime-v2')
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trip_plans', filter: `id=eq.${TRIP_ID}` }, payload => {
             if (payload.new && payload.new.data) {
+              triggerIncomingNotification(payload.new.data);
               state = payload.new.data;
               renderApp();
               setSyncText('อัปเดตล่าสุดแล้ว', true);
@@ -358,7 +410,7 @@
       } else {
         const saved = localStorage.getItem('sabai_mobile_v2_offline');
         if (saved) state = JSON.parse(saved);
-        setSyncText('โหมดออฟไลน์', false);
+        setSyncText('โหมดออฟไลน์ (ยังไม่ได้ใส่คีย์)', false);
       }
       renderApp();
     }
@@ -380,7 +432,7 @@
           localStorage.setItem('sabai_mobile_v2_offline', JSON.stringify(state));
           setSyncText('บันทึกในเครื่องแล้ว', false);
         }
-      }, 350);
+      }, 300);
     }
 
     function getActiveUser() {
@@ -405,6 +457,9 @@
 
     function setTab(tab) {
       currentTab = tab;
+      if (tab === 'chat') {
+        document.getElementById('chatUnreadDot').classList.add('hidden');
+      }
       ['plan', 'expense', 'members', 'chat'].forEach(t => {
         const btn = document.getElementById('nav-' + t);
         if (t === tab) {
@@ -546,19 +601,17 @@
       `;
     }
 
-    // ==================== TAB 2: ค่าใช้จ่าย + เคลียร์บิล + รายบุคคล ====================
+    // ==================== TAB 2: ค่าใช้จ่าย ====================
     function renderExpenseTab() {
       const rate = Number(state.exchangeRate) || 650;
       let totalThb = 0;
       const catTotals = {};
 
-      // เตรียมข้อมูลคำนวณรายบุคคล
       const memberStats = {};
       state.members.forEach(m => {
         memberStats[m.id] = { member: m, paid: 0, share: 0, net: 0 };
       });
 
-      // คำนวณยอดจากทุกวัน
       state.days.forEach(d => {
         d.items.forEach(item => {
           const raw = Number(item.cost) || 0;
@@ -578,15 +631,11 @@
               memberStats[uid].share += perHead;
             });
           } else {
-            // ไม่หาร (ส่วนตัว) -> คนจ่ายรับภาระเต็มจำนวน
             memberStats[payerId].share += thb;
           }
         });
       });
 
-      // คำนวณยอดสุทธิ (Net = จ่ายไปจริง - ส่วนแบ่งที่ต้องรับผิดชอบ)
-      // ถ้า Net > 0 (สีเขียว +฿...) แปลว่าสำรองจ่ายเกิน -> ต้องได้รับเงินคืน
-      // ถ้า Net < 0 (สีแดง -฿...) แปลว่าจ่ายน้อยกว่าส่วนแบ่ง -> ต้องโอนเงินคืนเพื่อน
       const debtors = [];
       const creditors = [];
       Object.values(memberStats).forEach(st => {
@@ -595,7 +644,6 @@
         else if (st.net > 0.5) creditors.push({ member: st.member, amount: st.net });
       });
 
-      // จับคู่โอนเงินเคลียร์บิล (Debt Simplification)
       debtors.sort((a, b) => b.amount - a.amount);
       creditors.sort((a, b) => b.amount - a.amount);
       const settlements = [];
@@ -603,11 +651,7 @@
       while (i < debtors.length && j < creditors.length) {
         const payAmt = Math.min(debtors[i].amount, creditors[j].amount);
         if (payAmt >= 1) {
-          settlements.push({
-            from: debtors[i].member,
-            to: creditors[j].member,
-            amount: Math.round(payAmt)
-          });
+          settlements.push({ from: debtors[i].member, to: creditors[j].member, amount: Math.round(payAmt) });
         }
         debtors[i].amount -= payAmt;
         creditors[j].amount -= payAmt;
@@ -622,7 +666,6 @@
       const visibleCats = state.showAllCats ? sortedCats : sortedCats.slice(0, 3);
 
       return `
-        <!-- 1. Dark Navy Summary Card -->
         <div class="bg-[#334155] text-white rounded-3xl p-5 shadow-md space-y-4">
           <div>
             <div class="text-xs text-slate-300">ยอดใช้จ่ายรวมทั้งทริป</div>
@@ -639,7 +682,6 @@
           </div>
         </div>
 
-        <!-- 2. Central Fund Card -->
         <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
           <div class="flex items-center justify-between gap-2">
             <h3 class="font-bold text-sm text-slate-800">🐷 เงินกองกลางทริป (Central Fund)</h3>
@@ -665,7 +707,6 @@
           <div class="text-right text-[11px] text-slate-400">คงเหลือ ≈ ${Math.round(fundRemaining * rate).toLocaleString()} กีบ (LAK)</div>
         </div>
 
-        <!-- 3. Category Breakdown -->
         <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
           <h3 class="font-bold text-sm text-slate-800">🕒 สรุปค่าใช้จ่ายแยกตามหมวดหมู่</h3>
           <div class="space-y-2.5">
@@ -692,7 +733,6 @@
           ` : ''}
         </div>
 
-        <!-- 4. สรุปยอดโอนเคลียร์บิล (Settlements) -->
         <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
           <h3 class="font-bold text-sm text-slate-800">🤝 สรุปยอดโอนเคลียร์บิล</h3>
           ${settlements.length > 0 ? `
@@ -715,7 +755,6 @@
           `}
         </div>
 
-        <!-- 5. ยอดใช้จ่ายรายบุคคล (Individual Breakdown) -->
         <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
           <h3 class="font-bold text-sm text-slate-800">🧾 ยอดใช้จ่ายรายบุคคล</h3>
           <div class="space-y-2.5">
@@ -818,11 +857,14 @@
       `;
     }
 
-    // ==================== TAB 4: แชทกลุ่ม ====================
+    // ==================== TAB 4: แชทกลุ่ม (แก้ตัวเลือกผู้ส่ง + ปุ่มแจ้งเตือน) ====================
     function renderChatTab() {
       const me = getActiveUser();
+      const notifSupported = ('Notification' in window);
+      const notifGranted = notifSupported && Notification.permission === 'granted';
+
       return `
-        <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm flex items-center justify-between gap-2">
           <div class="flex items-center gap-2.5">
             <span class="text-xl">💬</span>
             <div>
@@ -830,10 +872,19 @@
               <p class="text-[11px] text-slate-400">สมาชิก ${state.members.length}/10 คน</p>
             </div>
           </div>
-          <span class="text-[11px] text-emerald-600 font-medium">☁️ ซิงก์เรียลไทม์</span>
+
+          ${notifSupported ? (notifGranted ? `
+            <span class="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-medium">
+              🔔 แจ้งเตือนเปิดอยู่
+            </span>
+          ` : `
+            <button onclick="enableBrowserNotifications()" class="text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-full font-semibold">
+              🔔 เปิดแจ้งเตือน
+            </button>
+          `) : ''}
         </div>
 
-        <div id="chatScrollBox" class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm h-[52vh] overflow-y-auto space-y-3">
+        <div id="chatScrollBox" class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm h-[50vh] overflow-y-auto space-y-3">
           ${state.messages.map(msg => {
             const sender = state.members.find(m => m.id === msg.senderId) || state.members[0];
             const isMe = sender.id === me.id;
@@ -853,11 +904,16 @@
           }).join('')}
         </div>
 
+        <!-- กล่องพิมพ์ข้อความ + Dropdown เปลี่ยนชื่อผู้ส่งได้ทันที -->
         <div class="flex items-center gap-2">
-          <div class="bg-white border border-slate-200 rounded-2xl px-2.5 py-2 text-xs font-semibold text-slate-700 shrink-0">
-            ${me.emoji || '🐰'} ${me.name.slice(0, 7)}
-          </div>
-          <input id="chatInput" type="text" placeholder="พิมพ์ข้อความคุยกันในทริป..." onkeypress="if(event.key==='Enter') sendChat()"
+          <select onchange="selectAsMe(this.value)" title="เลือกชื่อผู้ส่งแชท"
+            class="bg-white border border-slate-200 rounded-2xl px-2 py-2.5 text-xs font-semibold text-slate-700 max-w-[115px] truncate outline-none">
+            ${state.members.map(m => `
+              <option value="${m.id}" ${m.id === me.id ? 'selected' : ''}>${m.emoji || '🐰'} ${m.name}</option>
+            `).join('')}
+          </select>
+
+          <input id="chatInput" type="text" placeholder="พิมพ์ข้อความในชื่อ ${me.name}..." onkeypress="if(event.key==='Enter') sendChat()"
             class="flex-1 bg-white border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs outline-none focus:border-[#334155]" />
           <button onclick="sendChat()" class="bg-[#334155] text-white w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
             ➤
@@ -866,7 +922,7 @@
       `;
     }
 
-    // ==================== MODAL & ACTIONS ====================
+    // ==================== ACTIONS ====================
     function selectDay(idx) { state.activeDayIdx = idx; renderApp(); }
     function addNewDay() {
       const n = state.days.length + 1;
@@ -950,7 +1006,6 @@
         setSplitMode('shared');
       }
 
-      // Render member checkboxes
       document.getElementById('splitMembersCheckboxes').innerHTML = state.members.map(m => `
         <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200/80 bg-slate-50/50 cursor-pointer text-xs">
           <input type="checkbox" class="split-member-cb accent-[#334155] w-4 h-4" value="${m.id}" ${checkedIds.includes(m.id) ? 'checked' : ''} />
@@ -1051,7 +1106,11 @@
       const name = document.getElementById('newMemberName').value.trim();
       const emoji = document.getElementById('newMemberEmoji').value;
       if (!name) return alert('กรุณาพิมพ์ชื่อเล่นเพื่อนก่อนครับ');
-      state.members.push({ id: 'm' + Date.now(), name, role: 'สมาชิก', emoji, avatarUrl: '' });
+      const newId = 'm' + Date.now();
+      state.members.push({ id: newId, name, role: 'สมาชิก', emoji, avatarUrl: '' });
+      // ตั้งค่าให้คนที่กดเพิ่มชื่อตัวเอง กลายเป็นผู้ใช้งานในเครื่องนั้นทันที
+      activeUserId = newId;
+      localStorage.setItem('sabai_active_user', newId);
       renderApp(); saveState();
     }
     function removeMember(idx) {

@@ -24,7 +24,6 @@
 </head>
 <body class="pb-24">
 
-  <!-- Mobile App Wrapper (Centered on Desktop, Full on Mobile) -->
   <div class="max-w-md mx-auto min-h-screen bg-[#f3f5f7] relative shadow-sm">
 
     <!-- Top App Header -->
@@ -44,7 +43,6 @@
         </div>
       </div>
 
-      <!-- Current User Selector & Quick Actions -->
       <div class="flex items-center gap-1.5 shrink-0">
         <button onclick="switchUserPrompt()" class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-full pl-1 pr-2.5 py-1 text-xs font-medium text-slate-700">
           <span id="activeUserAvatar" class="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold overflow-hidden">K</span>
@@ -62,7 +60,7 @@
     <!-- Main Dynamic Tab Content -->
     <main id="appContent" class="p-4 space-y-4"></main>
 
-    <!-- Bottom Navigation Bar (4 Tabs like reference) -->
+    <!-- Bottom Navigation Bar (4 Tabs) -->
     <nav class="fixed bottom-0 left-0 right-0 z-40">
       <div class="max-w-md mx-auto bg-white/95 backdrop-blur border-t border-slate-200 px-2 py-2 grid grid-cols-4 gap-1">
         <button onclick="setTab('plan')" id="nav-plan" class="flex flex-col items-center justify-center py-1 rounded-xl text-[#2d3748] font-bold">
@@ -87,9 +85,9 @@
 
   <!-- Modal for Add / Edit Plan Item -->
   <div id="planModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3.5 max-h-[90vh] overflow-y-auto">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between">
-        <h3 id="modalTitle" class="font-bold text-base text-slate-800">+ เพิ่มแพลนเที่ยว</h3>
+        <h3 id="modalTitle" class="font-bold text-base text-slate-800">+ เพิ่มแพลนเที่ยว / ที่พัก</h3>
         <button onclick="closePlanModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500">✕</button>
       </div>
 
@@ -98,24 +96,30 @@
       <div class="grid grid-cols-2 gap-2.5">
         <div>
           <label class="text-xs font-medium text-slate-500">ช่วงเวลา</label>
-          <input id="mTime" type="text" placeholder="เช่น 08:30 - 10:00" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#334155]" />
+          <input id="mTime" type="text" placeholder="เช่น 14:00 - 15:00" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#334155]" />
         </div>
         <div>
           <label class="text-xs font-medium text-slate-500">หมวดหมู่</label>
           <select id="mCategory" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none bg-white">
-            <option value="🚗 เดินทาง">🚗 เดินทาง</option>
+            <option value="🏨 ที่พัก">🏨 ที่พัก</option>
             <option value="🏞️ ที่เที่ยว">🏞️ ที่เที่ยว</option>
+            <option value="🚗 เดินทาง">🚗 เดินทาง</option>
             <option value="🍜 ค่าอาหาร">🍜 ค่าอาหาร</option>
             <option value="☕ คาเฟ่">☕ คาเฟ่</option>
-            <option value="🏨 ที่พัก">🏨 ที่พัก</option>
             <option value="🎫 ค่าเข้า/กิจกรรม">🎫 ค่าเข้า/กิจกรรม</option>
           </select>
         </div>
       </div>
 
       <div>
-        <label class="text-xs font-medium text-slate-500">ชื่อสถานที่ / กิจกรรม</label>
-        <input id="mTitle" type="text" placeholder="เช่น จุดชมวิวผาหนามไซ" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#334155]" />
+        <label class="text-xs font-medium text-slate-500">ชื่อที่พัก / สถานที่ / กิจกรรม</label>
+        <input id="mTitle" type="text" placeholder="เช่น Vieng Tara Villa หรือ แพริมน้ำเมืองเฟือง" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#334155]" />
+      </div>
+
+      <!-- NEW: Booking / Website URL Field -->
+      <div>
+        <label class="text-xs font-medium text-slate-500">🔗 ลิงก์จองที่พัก / เว็บไซต์ / เพจ (วาง URL ได้เลย)</label>
+        <input id="mBookingUrl" type="url" placeholder="https://www.agoda.com/... หรือลิงก์เพจ/รีวิว" class="w-full mt-1 border border-cyan-200 bg-cyan-50/30 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#334155]" />
       </div>
 
       <div class="grid grid-cols-12 gap-2">
@@ -151,8 +155,8 @@
       </div>
 
       <div>
-        <label class="text-xs font-medium text-slate-500">โน้ต / คำแนะนำเพิ่มเติม</label>
-        <input id="mNote" type="text" placeholder="เช่น ควรจองล่วงหน้า / ค่าเข้า 30,000 กีบ" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none" />
+        <label class="text-xs font-medium text-slate-500">โน้ต / รายละเอียดห้องพัก / คำแนะนำ</label>
+        <input id="mNote" type="text" placeholder="เช่น จอง 3 ห้อง รวมอาหารเช้า / เช็กอิน 14:00" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none" />
       </div>
 
       <div>
@@ -168,7 +172,7 @@
       </div>
 
       <button onclick="savePlanItem()" class="w-full bg-[#334155] hover:bg-[#1e293b] text-white font-semibold py-3 rounded-xl text-sm shadow">
-        บันทึกแพลนเที่ยว
+        บันทึกรายการ
       </button>
     </div>
   </div>
@@ -204,8 +208,8 @@
     // =========================================================================
     // ใส่ค่า PROJECT URL และ PUBLISHABLE KEY จาก Supabase ของคุณตรงนี้
     // =========================================================================
-    const SUPABASE_URL = 'https://dpnjxiubushiltkhruip.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_shO55VWbtMIy-rcQUy0FGQ_uXvNRhKj';
+    const SUPABASE_URL = 'sb_publishable_shO55VWbtMIy-rcQUy0FGQ_uXvNRhKj';
+    const SUPABASE_ANON_KEY = 'https://dpnjxiubushiltkhruip.supabase.co';
     const TRIP_ID = 'laos-3d2n-mobile-v1';
 
     const isConfigured = SUPABASE_URL.startsWith('http');
@@ -213,7 +217,7 @@
 
     const DEFAULT_STATE = {
       tripName: 'Sabai Laos 3D2N',
-      exchangeRate: 650, // 1 บาท = 650 กีบ
+      exchangeRate: 650,
       activeDayIdx: 0,
       members: [
         { id: 'm1', name: 'Kanyarat', role: 'เจ้าของทริป', emoji: '🐰', avatarUrl: '' },
@@ -233,12 +237,12 @@
           label: 'Day 1',
           route: 'อุดรฯ -> หนองคาย -> วังเวียง (17 July)',
           items: [
-            { id: 'i1', time: '06:20 - 07:20', category: '🚗 เดินทาง', title: 'บินเช้าถึงสนามบินอุดรธานี', cost: 3000, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'รับกระเป๋า เจอกันที่รถตู้ (07:30 ออกเดินทางไปด่านหนองคาย 60 กม. ~1 ชม.)', mapQuery: 'Udon Thani International Airport', photo: '' },
-            { id: 'i2', time: '09:00 - 10:30', category: '🍜 ค่าอาหาร', title: 'อาหารเช้าหนองคาย & ทำเรื่องข้ามด่าน', cost: 220, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'ข้ามด่าน ~30 นาที | ค่าประทับตราฝั่งลาว ~100 บาท/คน', mapQuery: 'Thai-Lao Friendship Bridge Nong Khai', photo: '' },
-            { id: 'i3', time: '10:30 - 13:00', category: '🚗 เดินทาง', title: 'เดินทางจากด่านไปวังเวียง (ทางด่วน)', cost: 400, currency: 'THB', splitType: 'shared', payer: 'Kanyarat', note: 'ระยะทาง 150 กม. (~2.30 ชม.) ถึงวังเวียงแวะทานข้าวกลางวัน', mapQuery: 'Vang Vieng, Laos', photo: '' },
-            { id: 'i4', time: '14:00 - 16:30', category: '🏞️ ที่เที่ยว', title: 'Sky Club & จุดชมวิวผาหนามไซ', cost: 85000, currency: 'LAK', splitType: 'per_person', payer: 'Kanyarat', note: 'Sky Club ค่าเข้า 80 บ. (ขึ้นบอลลูน ~4,000 บ.) | ผาหนามไซ ~30,000 กีบ', mapQuery: 'Pha Ngern Viewpoint Vang Vieng', photo: '' },
-            { id: 'i5', time: '16:30 - 18:30', category: '🏞️ ที่เที่ยว', title: 'บลูลากูน & ล่องเรือแม่น้ำซอง', cost: 170, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'บลูลากูน ~20,000 กีบ | ล่องเรือแม่น้ำซอง ~270 บาท / 2 คน', mapQuery: 'Blue Lagoon 1 Vang Vieng', photo: '' },
-            { id: 'i6', time: '18:30 - 21:00', category: '🏨 ที่พัก', title: 'คาเฟ่วังเวียง + Check-in ที่พักคืนที่ 1', cost: 1100, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'Pullmind Cafe / Vieng Tara + ทานอาหารเย็นและพักผ่อน', mapQuery: 'Vang Vieng, Laos', photo: '' }
+            { id: 'i1', time: '06:20 - 07:20', category: '🚗 เดินทาง', title: 'บินเช้าถึงสนามบินอุดรธานี', cost: 3000, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'รับกระเป๋า เจอกันที่รถตู้ (07:30 ออกเดินทางไปด่านหนองคาย 60 กม. ~1 ชม.)', mapQuery: 'Udon Thani International Airport', bookingUrl: '', photo: '' },
+            { id: 'i2', time: '09:00 - 10:30', category: '🍜 ค่าอาหาร', title: 'อาหารเช้าหนองคาย & ทำเรื่องข้ามด่าน', cost: 220, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'ข้ามด่าน ~30 นาที | ค่าประทับตราฝั่งลาว ~100 บาท/คน', mapQuery: 'Thai-Lao Friendship Bridge Nong Khai', bookingUrl: '', photo: '' },
+            { id: 'i3', time: '10:30 - 13:00', category: '🚗 เดินทาง', title: 'เดินทางจากด่านไปวังเวียง (ทางด่วน)', cost: 400, currency: 'THB', splitType: 'shared', payer: 'Kanyarat', note: 'ระยะทาง 150 กม. (~2.30 ชม.) ถึงวังเวียงแวะทานข้าวกลางวัน', mapQuery: 'Vang Vieng, Laos', bookingUrl: '', photo: '' },
+            { id: 'i4', time: '14:00 - 16:30', category: '🏞️ ที่เที่ยว', title: 'Sky Club & จุดชมวิวผาหนามไซ', cost: 85000, currency: 'LAK', splitType: 'per_person', payer: 'Kanyarat', note: 'Sky Club ค่าเข้า 80 บ. (ควรจองล่วงหน้า | ขึ้นบอลลูน ~4,000 บ.) | ผาหนามไซ ~30,000 กีบ', mapQuery: 'Pha Ngern Viewpoint Vang Vieng', bookingUrl: 'https://www.google.com/search?q=Sky+Club+Vang+Vieng', photo: '' },
+            { id: 'i5', time: '16:30 - 18:30', category: '🏞️ ที่เที่ยว', title: 'บลูลากูน & ล่องเรือแม่น้ำซอง', cost: 170, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'บลูลากูน ~20,000 กีบ | ล่องเรือแม่น้ำซอง ~270 บาท / 2 คน', mapQuery: 'Blue Lagoon 1 Vang Vieng', bookingUrl: '', photo: '' },
+            { id: 'i6', time: '18:30 - 21:00', category: '🏨 ที่พัก', title: 'ที่พักวังเวียง คืนที่ 1 (เช่น Vieng Tara / Amari)', cost: 1100, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'แวะคาเฟ่วังเวียง + Check-in ที่พัก + ทานอาหารเย็น', mapQuery: 'Vang Vieng Hotels', bookingUrl: 'https://www.agoda.com/th-th/city/vang-vieng-la.html', photo: '' }
           ]
         },
         {
@@ -246,10 +250,10 @@
           label: 'Day 2',
           route: 'วังเวียง -> เมืองเฟือง (18 July)',
           items: [
-            { id: 'i2_1', time: '08:00 - 10:30', category: '☕ คาเฟ่', title: 'เช็คเอาท์ & เที่ยวเก็บตกช่วงเช้า', cost: 100, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'แวะถ้ำจัง / สะพานส้ม / คาเฟ่เช้าก่อนออกจากวังเวียง', mapQuery: 'Tham Chang Cave Vang Vieng', photo: '' },
-            { id: 'i2_2', time: '10:30 - 13:00', category: '🚗 เดินทาง', title: 'เดินทางจาก วังเวียง ไป เมืองเฟือง', cost: 0, currency: 'THB', splitType: 'shared', payer: 'Kanyarat', note: 'ระยะทาง 100 กม. (~2.30 ชม.)', mapQuery: 'Muang Feuang, Laos', photo: '' },
-            { id: 'i2_3', time: '13:00 - 17:30', category: '🏞️ ที่เที่ยว', title: 'Check-in แพริมน้ำ & ล่องแพแม่น้ำลีก', cost: 150000, currency: 'LAK', splitType: 'per_person', payer: 'Kanyarat', note: 'พายคายัค / ล่องแพชมวิวภูเขาหินปูน / ไหว้พระวัดสินไชยาราม', mapQuery: 'Muang Feuang, Laos', photo: '' },
-            { id: 'i2_4', time: '18:00 - 21:00', category: '🏨 ที่พัก', title: 'พักแพริมน้ำเมืองเฟือง คืนที่ 2 + หมูกระทะ', cost: 1300, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'อย่าลืมสั่งจองชุดตักบาตรริมน้ำกับที่พักสำหรับเช้าพรุ่งนี้ (~60,000 กีบ)', mapQuery: 'Muang Feuang, Laos', photo: '' }
+            { id: 'i2_1', time: '08:00 - 10:30', category: '☕ คาเฟ่', title: 'เช็คเอาท์ & เที่ยวเก็บตกช่วงเช้า', cost: 100, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'แวะถ้ำจัง / สะพานส้ม / คาเฟ่เช้าก่อนออกจากวังเวียง', mapQuery: 'Tham Chang Cave Vang Vieng', bookingUrl: '', photo: '' },
+            { id: 'i2_2', time: '10:30 - 13:00', category: '🚗 เดินทาง', title: 'เดินทางจาก วังเวียง ไป เมืองเฟือง', cost: 0, currency: 'THB', splitType: 'shared', payer: 'Kanyarat', note: 'ระยะทาง 100 กม. (~2.30 ชม.)', mapQuery: 'Muang Feuang, Laos', bookingUrl: '', photo: '' },
+            { id: 'i2_3', time: '13:00 - 17:30', category: '🏞️ ที่เที่ยว', title: 'ล่องแพแม่น้ำลีก & วัดสินไชยาราม', cost: 150000, currency: 'LAK', splitType: 'per_person', payer: 'Kanyarat', note: 'พายคายัค / ล่องแพชมวิวภูเขาหินปูน / ไหว้พระวัดสินไชยาราม', mapQuery: 'Muang Feuang, Laos', bookingUrl: '', photo: '' },
+            { id: 'i2_4', time: '18:00 - 21:00', category: '🏨 ที่พัก', title: 'แพริมน้ำเมืองเฟือง คืนที่ 2 + หมูกระทะ', cost: 1300, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'สั่งจองชุดตักบาตรริมน้ำกับที่พักสำหรับเช้าพรุ่งนี้ (~60,000 กีบ)', mapQuery: 'Muang Feuang Riverside Resort', bookingUrl: 'https://www.google.com/search?q=ที่พักแพริมน้ำ+เมืองเฟือง+ลาว', photo: '' }
           ]
         },
         {
@@ -257,10 +261,10 @@
           label: 'Day 3',
           route: 'เมืองเฟือง -> เวียงจันทน์ -> สนามบินอุดรฯ (19 July)',
           items: [
-            { id: 'i3_1', time: '06:30 - 09:00', category: '🎫 ค่าเข้า/กิจกรรม', title: 'ตักบาตรพระสงฆ์ริมน้ำยามเช้า + เช็คเอาท์', cost: 60000, currency: 'LAK', splitType: 'per_person', payer: 'Kanyarat', note: 'พระพายเรือรับบาตรหน้าแพ + ทานอาหารเช้าที่พัก', mapQuery: 'Muang Feuang, Laos', photo: '' },
-            { id: 'i3_2', time: '09:30 - 12:00', category: '🚗 เดินทาง', title: 'เดินทางจาก เมืองเฟือง ไป เวียงจันทน์', cost: 0, currency: 'THB', splitType: 'shared', payer: 'Kanyarat', note: 'ระยะทาง 140 กม. (~2.30 ชม.) ถึงเวียงจันทน์ทานมื้อกลางวัน', mapQuery: 'Vientiane, Laos', photo: '' },
-            { id: 'i3_3', time: '13:00 - 15:30', category: '🏞️ ที่เที่ยว', title: 'พระธาตุหลวง & ประตูชัย & คาเฟ่เวียงจันทน์', cost: 60000, currency: 'LAK', splitType: 'per_person', payer: 'Kanyarat', note: 'ค่าเข้าด้านในจุดละ ~30,000 กีบ | แวะ Joma Bakery ซื้อของฝาก', mapQuery: 'Pha That Luang Vientiane', photo: '' },
-            { id: 'i3_4', time: '15:30 - 19:20', category: '🚗 เดินทาง', title: 'ข้ามด่านหนองคาย -> สนามบินอุดรธานี', cost: 50, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: '18:30 ถึงสนามบินอุดรฯ | 19:20 ขึ้นเครื่องกลับโดยสวัสดิภาพ', mapQuery: 'Udon Thani International Airport', photo: '' }
+            { id: 'i3_1', time: '06:30 - 09:00', category: '🎫 ค่าเข้า/กิจกรรม', title: 'ตักบาตรพระสงฆ์ริมน้ำยามเช้า + เช็คเอาท์', cost: 60000, currency: 'LAK', splitType: 'per_person', payer: 'Kanyarat', note: 'พระพายเรือรับบาตรหน้าแพ + ทานอาหารเช้าที่พัก', mapQuery: 'Muang Feuang, Laos', bookingUrl: '', photo: '' },
+            { id: 'i3_2', time: '09:30 - 12:00', category: '🚗 เดินทาง', title: 'เดินทางจาก เมืองเฟือง ไป เวียงจันทน์', cost: 0, currency: 'THB', splitType: 'shared', payer: 'Kanyarat', note: 'ระยะทาง 140 กม. (~2.30 ชม.) ถึงเวียงจันทน์ทานมื้อกลางวัน', mapQuery: 'Vientiane, Laos', bookingUrl: '', photo: '' },
+            { id: 'i3_3', time: '13:00 - 15:30', category: '🏞️ ที่เที่ยว', title: 'พระธาตุหลวง & ประตูชัย & คาเฟ่เวียงจันทน์', cost: 60000, currency: 'LAK', splitType: 'per_person', payer: 'Kanyarat', note: 'ค่าเข้าด้านในจุดละ ~30,000 กีบ | แวะ Joma Bakery ซื้อของฝาก', mapQuery: 'Pha That Luang Vientiane', bookingUrl: '', photo: '' },
+            { id: 'i3_4', time: '15:30 - 19:20', category: '🚗 เดินทาง', title: 'ข้ามด่านหนองคาย -> สนามบินอุดรธานี', cost: 50, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: '18:30 ถึงสนามบินอุดรฯ | 19:20 ขึ้นเครื่องกลับโดยสวัสดิภาพ', mapQuery: 'Udon Thani International Airport', bookingUrl: '', photo: '' }
           ]
         }
       ]
@@ -366,7 +370,6 @@
     function renderPlanTab() {
       const day = state.days[state.activeDayIdx] || state.days[0];
       return `
-        <!-- Day Selector Pills -->
         <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
           ${state.days.map((d, idx) => `
             <button onclick="selectDay(${idx})"
@@ -379,7 +382,6 @@
           </button>
         </div>
 
-        <!-- Day Header Card -->
         <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm flex items-center justify-between gap-2">
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
@@ -393,15 +395,18 @@
           </button>
         </div>
 
-        <!-- Timeline Cards -->
         <div class="space-y-4">
           ${day.items.map((item, idx) => {
             const gmapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.mapQuery || item.title)}`;
             const costFormatted = Number(item.cost || 0).toLocaleString();
             const unitLabel = item.currency === 'LAK' ? 'LAK' : 'THB';
+            const isHotel = (item.category || '').includes('ที่พัก');
+            const rawUrl = (item.bookingUrl || '').trim();
+            const validBookingUrl = rawUrl ? (rawUrl.startsWith('http') ? rawUrl : 'https://' + rawUrl) : '';
+            const autoSearchHotelUrl = `https://www.agoda.com/th-th/search?textToSearch=${encodeURIComponent(item.mapQuery || item.title)}`;
+
             return `
               <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
-                <!-- Card Top Row -->
                 <div class="flex items-center justify-between text-xs text-slate-500">
                   <div class="flex items-center gap-2">
                     <span class="font-semibold text-slate-700">🕒 ${item.time}</span>
@@ -414,17 +419,14 @@
                   </div>
                 </div>
 
-                <!-- Activity Title -->
                 <h3 class="font-bold text-base text-slate-800 leading-snug">${item.title}</h3>
 
-                <!-- Optional Photo -->
                 ${item.photo ? `
                   <div class="rounded-2xl overflow-hidden border border-slate-100">
                     <img src="${item.photo}" class="w-full h-44 object-cover" />
                   </div>
                 ` : ''}
 
-                <!-- Cost & Payer Box -->
                 <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100 space-y-2 text-xs">
                   <div class="flex items-center justify-between">
                     <span class="text-slate-500">💰 ค่าใช้จ่าย</span>
@@ -442,20 +444,32 @@
                   </div>
                 </div>
 
-                <!-- Note Box -->
                 ${item.note ? `
                   <div class="bg-slate-50/70 rounded-xl px-3 py-2 text-xs text-slate-600 border border-slate-100">
                     💬 ${item.note}
                   </div>
                 ` : ''}
 
-                <!-- Action Pill: Google Maps -->
-                <div class="pt-0.5 flex items-center justify-between">
-                  <a href="${gmapUrl}" target="_blank" class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-full transition">
-                    <span class="text-rose-500">📍</span> เปิด Google Maps
-                  </a>
-                  <label class="text-[11px] text-slate-400 hover:text-slate-600 cursor-pointer">
-                    📷 ${item.photo ? 'เปลี่ยนรูป' : '+ แนบรูป'}
+                <!-- Action Pills: Google Maps + Booking/Website Link -->
+                <div class="pt-0.5 flex flex-wrap items-center justify-between gap-2">
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <a href="${gmapUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-full transition">
+                      <span class="text-rose-500">📍</span> Google Maps
+                    </a>
+
+                    ${validBookingUrl ? `
+                      <a href="${validBookingUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold px-3.5 py-2 rounded-full transition shadow-sm">
+                        <span>${isHotel ? '🏨 จองที่พัก / ดูห้อง' : '🔗 เปิดลิงก์เว็บ'}</span> ↗
+                      </a>
+                    ` : (isHotel ? `
+                      <a href="${autoSearchHotelUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 text-xs font-semibold px-3 py-2 rounded-full transition">
+                        <span>🏨 ค้นหาที่พักนี้</span> ↗
+                      </a>
+                    ` : '')}
+                  </div>
+
+                  <label class="text-[11px] text-slate-400 hover:text-slate-600 cursor-pointer ml-auto">
+                    📷 ${item.photo ? 'เปลี่ยนรูป' : '+ รูป'}
                     <input type="file" accept="image/*" class="hidden" onchange="quickAttachPhoto(${idx}, this)" />
                   </label>
                 </div>
@@ -488,11 +502,9 @@
       const totalLak = Math.round(totalThb * rate);
       const fundTotal = state.centralFund.reduce((s, f) => s + (Number(f.amount) || 0), 0);
       const fundRemaining = fundTotal - totalThb;
-
       const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
 
       return `
-        <!-- Dark Navy Summary Card -->
         <div class="bg-[#334155] text-white rounded-3xl p-5 shadow-md space-y-4">
           <div>
             <div class="text-xs text-slate-300">ยอดใช้จ่ายรวมทั้งทริป</div>
@@ -509,7 +521,6 @@
           </div>
         </div>
 
-        <!-- Central Fund Card -->
         <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
           <div class="flex items-center justify-between gap-2">
             <div>
@@ -537,7 +548,6 @@
           </div>
         </div>
 
-        <!-- Category Breakdown -->
         <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
           <h3 class="font-bold text-sm text-slate-800">📊 สรุปค่าใช้จ่ายแยกตามหมวดหมู่</h3>
           <div class="space-y-3">
@@ -563,7 +573,6 @@
     // ==================== TAB 3: เพื่อนทริป & โน้ต ====================
     function renderMembersTab() {
       return `
-        <!-- Members Card -->
         <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
           <div class="flex items-center justify-between">
             <div>
@@ -615,7 +624,6 @@
           </div>
         </div>
 
-        <!-- Shared Trip Note -->
         <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="font-bold text-base text-slate-800">📝 Note & สิ่งที่ต้องเตรียม</h3>
@@ -701,10 +709,11 @@
 
       if (idx >= 0) {
         const item = state.days[state.activeDayIdx].items[idx];
-        document.getElementById('modalTitle').innerText = '✏️ แก้ไขแพลนเที่ยว';
+        document.getElementById('modalTitle').innerText = '✏️ แก้ไขแพลน / ที่พัก';
         document.getElementById('mTime').value = item.time;
         document.getElementById('mCategory').value = item.category;
         document.getElementById('mTitle').value = item.title;
+        document.getElementById('mBookingUrl').value = item.bookingUrl || '';
         document.getElementById('mCost').value = item.cost;
         document.getElementById('mCurrency').value = item.currency;
         document.getElementById('mSplitType').value = item.splitType;
@@ -713,10 +722,11 @@
         document.getElementById('mNote').value = item.note || '';
         tempModalPhoto = item.photo || '';
       } else {
-        document.getElementById('modalTitle').innerText = '+ เพิ่มแพลนเที่ยว';
-        document.getElementById('mTime').value = '10:00 - 11:30';
-        document.getElementById('mCategory').value = '🏞️ ที่เที่ยว';
+        document.getElementById('modalTitle').innerText = '+ เพิ่มแพลนเที่ยว / ที่พัก';
+        document.getElementById('mTime').value = '14:00 - 15:00';
+        document.getElementById('mCategory').value = '🏨 ที่พัก';
         document.getElementById('mTitle').value = '';
+        document.getElementById('mBookingUrl').value = '';
         document.getElementById('mCost').value = '';
         document.getElementById('mCurrency').value = 'THB';
         document.getElementById('mSplitType').value = 'per_person';
@@ -744,13 +754,14 @@
     function savePlanItem() {
       const idx = Number(document.getElementById('editItemIdx').value);
       const title = document.getElementById('mTitle').value.trim();
-      if (!title) return alert('กรุณากรอกชื่อสถานที่หรือกิจกรรมครับ');
+      if (!title) return alert('กรุณากรอกชื่อสถานที่หรือที่พักครับ');
 
       const obj = {
         id: 'i' + Date.now(),
         time: document.getElementById('mTime').value.trim() || 'เวลา',
         category: document.getElementById('mCategory').value,
         title,
+        bookingUrl: document.getElementById('mBookingUrl').value.trim(),
         cost: Number(document.getElementById('mCost').value) || 0,
         currency: document.getElementById('mCurrency').value,
         splitType: document.getElementById('mSplitType').value,

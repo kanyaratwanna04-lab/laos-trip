@@ -86,6 +86,31 @@
     </nav>
   </div>
 
+  <!-- Modal: กรอกราคาของแต่ละคนแบบด่วน (Quick Individual Input) -->
+  <div id="quickIndModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 id="qIndTitle" class="font-bold text-base text-slate-800">ใส่ยอดค่าใช้จ่ายของแต่ละคน</h3>
+          <p class="text-[11px] text-slate-400">ยอดของใครของมัน ไม่นำไปหารเฉลี่ยกับเพื่อน</p>
+        </div>
+        <button onclick="closeQuickIndModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">✕</button>
+      </div>
+
+      <input type="hidden" id="qIndItemIdx" value="-1" />
+      <div id="qIndMemberList" class="space-y-2.5 max-h-[50vh] overflow-y-auto"></div>
+
+      <div class="grid grid-cols-12 gap-2 pt-1">
+        <button type="button" onclick="closeQuickIndModal()" class="col-span-4 bg-slate-100 text-slate-700 font-semibold py-3 rounded-2xl text-xs">
+          ยกเลิก
+        </button>
+        <button type="button" onclick="saveQuickInd()" class="col-span-8 bg-[#334155] text-white font-semibold py-3 rounded-2xl text-xs shadow">
+          บันทึกยอดของทุกคน
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: เพิ่ม / แก้ไขแพลนเที่ยวใหม่ -->
   <div id="planModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3.5 max-h-[92vh] overflow-y-auto">
@@ -180,30 +205,53 @@
           </select>
         </div>
 
-        <div class="flex items-center gap-2">
-          <input id="mCost" type="number" placeholder="จำนวนเงินรวมของบิลนี้"
-            class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#334155]" />
-          <select id="mCurrency" class="bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs outline-none">
-            <option value="LAK">กีบ (LAK)</option>
-            <option value="THB">บาท (THB)</option>
-          </select>
-        </div>
-
         <div>
-          <label class="text-[11px] text-slate-500">แหล่งเงินที่จ่าย (หักกองกลาง หรือ สำรองจ่าย):</label>
-          <select id="mPayerId" onchange="onPayerChange()" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none bg-white font-medium"></select>
+          <label class="text-[11px] text-slate-500 block mb-1.5">รูปแบบการคิดเงินของรายการนี้:</label>
+          <div class="grid grid-cols-1 gap-1.5">
+            <button type="button" id="btnSplitShared" onclick="setSplitMode('shared')"
+              class="py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-between bg-white border-[#334155] text-slate-800">
+              <span><span>◉</span> บิลรวม (หารเท่ากันทุกคน / หักกองกลาง)</span>
+            </button>
+            <button type="button" id="btnSplitIndividual" onclick="setSplitMode('individual')"
+              class="py-2 px-3 rounded-xl border text-xs font-medium flex items-center justify-between bg-white border-slate-200 text-slate-500">
+              <span><span>○</span> แยกยอดใครยอดมัน (ต่างคนต่างใส่ราคาตัวเอง)</span>
+            </button>
+            <button type="button" id="btnSplitPersonal" onclick="setSplitMode('personal')"
+              class="py-2 px-3 rounded-xl border text-xs font-medium flex items-center justify-between bg-white border-slate-200 text-slate-500">
+              <span><span>○</span> จ่ายส่วนตัวคนเดียว (ไม่หารกับใคร)</span>
+            </button>
+          </div>
         </div>
 
-        <div id="splitModeRow" class="grid grid-cols-2 gap-2">
-          <button type="button" id="btnSplitShared" onclick="setSplitMode('shared')"
-            class="py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 bg-white border-[#334155] text-slate-800">
-            <span>◉</span> หารกับเพื่อนทุกคน
-          </button>
-          <button type="button" id="btnSplitPersonal" onclick="setSplitMode('personal')"
-            class="py-2.5 px-3 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 bg-white border-slate-200 text-slate-500">
-            <span>○</span> ไม่หาร (ส่วนตัว)
-          </button>
+        <!-- โซนกรอกบิลรวม (Shared / Personal) -->
+        <div id="sharedInputZone" class="space-y-2.5 pt-1">
+          <div class="flex items-center gap-2">
+            <input id="mCost" type="number" placeholder="จำนวนเงินรวมของบิลนี้"
+              class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#334155]" />
+            <select id="mCurrency" class="bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs outline-none">
+              <option value="LAK">กีบ (LAK)</option>
+              <option value="THB">บาท (THB)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-[11px] text-slate-500">แหล่งเงินที่จ่าย:</label>
+            <select id="mPayerId" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none bg-white font-medium"></select>
+          </div>
         </div>
+
+        <!-- โซนกรอกแยกยอดรายคน (Individual) -->
+        <div id="individualInputZone" class="hidden space-y-2 pt-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-medium text-slate-600">ใส่ราคาของแต่ละคน (ต่างคนต่างจ่าย):</span>
+            <select id="mIndCurrency" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] outline-none">
+              <option value="THB">บาท (THB)</option>
+              <option value="LAK">กีบ (LAK)</option>
+            </select>
+          </div>
+          <div id="mIndMemberInputs" class="space-y-2"></div>
+        </div>
+
         <div id="splitHintText" class="text-[11px] text-slate-500 text-center">
           ระบบจะหารยอดนี้เท่ากันทุกคนตามจำนวนสมาชิกในทริปอัตโนมัติ
         </div>
@@ -285,7 +333,7 @@
     // =========================================================================
     const SUPABASE_URL = 'https://dpnjxiubushiltkhruip.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_shO55VWbtMIy-rcQUy0FGQ_uXvNRhKj';
-    const TRIP_ID = 'laos-3d2n-mobile-v4';
+    const TRIP_ID = 'laos-3d2n-mobile-v5';
 
     const isConfigured = SUPABASE_URL.startsWith('http');
     const sb = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
@@ -300,7 +348,7 @@
         { id: 'm2', name: 'เพื่อนร่วมทริป 2', role: 'สมาชิก', emoji: '🐻', avatarUrl: '' }
       ],
       centralFund: [],
-      notes: `📌 สิ่งที่ต้องเตรียม:\n- พาสปอร์ต (อายุเหลือมากกว่า 6 เดือน)\n- ตั๋วเครื่องบินไป-กลับ (~3,000 บาท แยกเป็นค่าใช้จ่ายส่วนตัว)\n- ซิมเน็ต / โรมมิ่งลาว\n- ค่าธรรมเนียมข้ามด่านฝั่งลาว (~100 บาท/คน)\n- รองเท้าผ้าใบสำหรับขึ้นจุดชมวิวผาหนามไซ`,
+      notes: `📌 สิ่งที่ต้องเตรียม:\n- พาสปอร์ต (อายุเหลือมากกว่า 6 เดือน)\n- ตั๋วเครื่องบินไป-กลับ (กดใส่ราคาของตัวเองในการ์ด Day 1 ได้เลย)\n- ซิมเน็ต / โรมมิ่งลาว\n- ค่าธรรมเนียมข้ามด่านฝั่งลาว (~100 บาท/คน)\n- รองเท้าผ้าใบสำหรับขึ้นจุดชมวิวผาหนามไซ`,
       messages: [
         { id: 'msg1', senderId: 'm2', text: 'สวัสดีทุกคน! พร้อมไปเที่ยวลาวกันยังง 🇱🇦✨', time: '10:00' },
         { id: 'msg2', senderId: 'm1', text: 'พร้อมมากก แพลน 3 วัน 2 คืน วังเวียง-เมืองเฟือง-เวียงจันทน์ ครบแล้วจ้า', time: '10:02' }
@@ -311,7 +359,24 @@
           label: 'Day 1',
           route: 'อุดรฯ -> หนองคาย -> วังเวียง (17 July)',
           items: [
-            { id: 'i1', icon: '✈️', timeStart: '06:20', timeEnd: '07:20', transport: '✈️ เครื่องบิน', category: '🚄 ค่าเดินทาง', title: 'ค่าตั๋วเครื่องบินไป-กลับ (อุดรธานี)', cost: 3000, currency: 'THB', payerId: 'm1', splitMode: 'personal', note: 'ค่าตั๋วเครื่องบินแยกเป็นค่าใช้จ่ายส่วนตัวของแต่ละคน', mapQuery: 'Udon Thani International Airport', bookingUrl: '', photo: '' },
+            {
+              id: 'i1',
+              icon: '✈️',
+              timeStart: '06:20',
+              timeEnd: '07:20',
+              transport: '✈️ เครื่องบิน',
+              category: '🚄 ค่าเดินทาง',
+              title: 'ค่าตั๋วเครื่องบินไป-กลับ (อุดรธานี)',
+              cost: 3000,
+              currency: 'THB',
+              payerId: 'm1',
+              splitMode: 'individual',
+              individualCosts: { m1: 3000, m2: 0 },
+              note: 'ต่างคนต่างกดใส่ราคาตั๋วเครื่องบินของตัวเองได้เลย ไม่นำไปหารกัน',
+              mapQuery: 'Udon Thani International Airport',
+              bookingUrl: '',
+              photo: ''
+            },
             { id: 'i2', icon: '🍜', timeStart: '09:00', timeEnd: '10:30', transport: '🚐 รถตู้เหมา', category: '🍜 ค่าอาหาร', title: 'อาหารเช้าหนองคาย & ทำเรื่องข้ามด่าน', cost: 440, currency: 'THB', payerId: 'm1', splitMode: 'shared', note: 'ข้ามด่าน ~30 นาที | ค่าประทับตราฝั่งลาว ~100 บาท/คน', mapQuery: 'Thai-Lao Friendship Bridge Nong Khai', bookingUrl: '', photo: '' },
             { id: 'i3', icon: '🚐', timeStart: '10:30', timeEnd: '13:00', transport: '🚐 รถตู้เหมา', category: '🚄 ค่าเดินทาง', title: 'เดินทางจากด่านไปวังเวียง (ทางด่วน)', cost: 400, currency: 'THB', payerId: 'm1', splitMode: 'shared', note: 'ระยะทาง 150 กม. (~2.30 ชม.) ถึงวังเวียงแวะทานข้าวกลางวัน', mapQuery: 'Vang Vieng, Laos', bookingUrl: '', photo: '' },
             { id: 'i4', icon: '🎈', timeStart: '14:00', timeEnd: '16:30', transport: '📍 กิจกรรม ณ จุดหมาย', category: '🏞️ ค่าเข้า/กิจกรรม', title: 'Sky Club & จุดชมวิวผาหนามไซ', cost: 170000, currency: 'LAK', payerId: 'm1', splitMode: 'shared', note: 'Sky Club ค่าเข้า 80 บ. (ขึ้นบอลลูน ~4,000 บ.) | ผาหนามไซ ~30,000 กีบ', mapQuery: 'Pha Ngern Viewpoint Vang Vieng', bookingUrl: 'https://www.google.com/search?q=Sky+Club+Vang+Vieng', photo: '' },
@@ -413,7 +478,7 @@
         }
         setSyncText('ซิงก์เรียลไทม์', true);
 
-        sb.channel('sabai-realtime-v4')
+        sb.channel('sabai-realtime-v5')
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trip_plans', filter: `id=eq.${TRIP_ID}` }, payload => {
             if (payload.new && payload.new.data) {
               triggerIncomingNotification(payload.new.data);
@@ -424,7 +489,7 @@
           })
           .subscribe();
       } else {
-        const saved = localStorage.getItem('sabai_mobile_v4_offline');
+        const saved = localStorage.getItem('sabai_mobile_v5_offline');
         if (saved) state = JSON.parse(saved);
         setSyncText('โหมดออฟไลน์ (ยังไม่ได้ใส่คีย์)', false);
       }
@@ -445,7 +510,7 @@
           await sb.from('trip_plans').upsert({ id: TRIP_ID, data: state, updated_at: new Date().toISOString() });
           setSyncText('ซิงก์เรียลไทม์', true);
         } else {
-          localStorage.setItem('sabai_mobile_v4_offline', JSON.stringify(state));
+          localStorage.setItem('sabai_mobile_v5_offline', JSON.stringify(state));
           setSyncText('บันทึกในเครื่องแล้ว', false);
         }
       }, 300);
@@ -532,11 +597,19 @@
           ${day.items.map((item, idx) => {
             const rawMap = (item.mapQuery || item.title || '').trim();
             const gmapUrl = rawMap.startsWith('http') ? rawMap : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rawMap)}`;
-            const costFormatted = Number(item.cost || 0).toLocaleString();
             const unitLabel = item.currency === 'LAK' ? 'LAK' : 'THB';
             const isFundPaid = item.payerId === 'CENTRAL_FUND';
-            const payer = isFundPaid ? null : getMemberById(item.payerId);
+            const isIndividual = item.splitMode === 'individual';
             const isShared = item.splitMode === 'shared';
+            const payer = isFundPaid ? null : getMemberById(item.payerId);
+
+            // คำนวณยอดแสดงผลบนการ์ด
+            let totalDisplayCost = Number(item.cost || 0);
+            if (isIndividual) {
+              const indMap = item.individualCosts || {};
+              totalDisplayCost = state.members.reduce((sum, m) => sum + (Number(indMap[m.id]) || 0), 0);
+            }
+            const costFormatted = totalDisplayCost.toLocaleString();
 
             const isHotel = (item.category || '').includes('ที่พัก');
             const rawUrl = (item.bookingUrl || '').trim();
@@ -544,12 +617,14 @@
             const autoSearchHotelUrl = `https://www.agoda.com/th-th/search?textToSearch=${encodeURIComponent(item.title)}`;
 
             let badgeHtml = '';
-            if (isFundPaid) {
+            if (isIndividual) {
+              badgeHtml = `<span class="text-[11px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-medium">แยกยอดใครยอดมัน</span>`;
+            } else if (isFundPaid) {
               badgeHtml = `<span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">🐷 หักเงินกองกลาง</span>`;
             } else if (isShared) {
               badgeHtml = `<span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">หารเท่ากัน (${memberCount} คน)</span>`;
             } else {
-              badgeHtml = `<span class="text-[11px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">ส่วนตัว (ไม่หาร)</span>`;
+              badgeHtml = `<span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">ส่วนตัวคนเดียว</span>`;
             }
 
             return `
@@ -582,21 +657,46 @@
                     <span class="font-bold text-sm text-slate-800">${costFormatted} ${unitLabel}</span>
                     ${badgeHtml}
                   </div>
-                  <div class="flex items-center justify-between pt-1.5 border-t border-slate-200/60">
-                    <span class="text-slate-500">${isFundPaid ? 'ตัดยอดจาก:' : (isShared ? 'สำรองจ่าย:' : 'ผู้จ่าย:')}</span>
-                    ${isFundPaid ? `
-                      <span class="font-semibold text-emerald-700 flex items-center gap-1">
-                        🐷 เงินกองกลางทริป
-                      </span>
-                    ` : `
-                      <span class="font-semibold text-slate-700 flex items-center gap-1.5">
-                        <span class="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] flex items-center justify-center overflow-hidden">
-                          ${payer.avatarUrl ? `<img src="${payer.avatarUrl}" class="w-full h-full object-cover"/>` : (payer.emoji || payer.name.charAt(0))}
+
+                  ${isIndividual ? `
+                    <div class="pt-2 border-t border-slate-200/60 space-y-1.5">
+                      ${state.members.map(m => {
+                        const val = Number((item.individualCosts || {})[m.id] || 0);
+                        return `
+                          <div class="flex items-center justify-between text-[11px]">
+                            <span class="flex items-center gap-1.5 text-slate-600">
+                              <span class="w-4 h-4 rounded-full bg-orange-500 text-white text-[9px] flex items-center justify-center overflow-hidden">
+                                ${m.avatarUrl ? `<img src="${m.avatarUrl}" class="w-full h-full object-cover"/>` : (m.emoji || m.name.charAt(0))}
+                              </span>
+                              ${m.name}
+                            </span>
+                            <span class="font-semibold ${val > 0 ? 'text-slate-800' : 'text-slate-400'}">
+                              ${val > 0 ? `${val.toLocaleString()} ${unitLabel}` : 'ยังไม่ใส่ราคา'}
+                            </span>
+                          </div>
+                        `;
+                      }).join('')}
+                      <button onclick="openQuickIndModal(${idx})" class="w-full mt-1.5 py-2 rounded-xl bg-white border border-purple-200 text-purple-700 hover:bg-purple-50 font-semibold text-xs flex items-center justify-center gap-1 shadow-2xs">
+                        ✏️ ใส่ / แก้ไขราคาของฉัน
+                      </button>
+                    </div>
+                  ` : `
+                    <div class="flex items-center justify-between pt-1.5 border-t border-slate-200/60">
+                      <span class="text-slate-500">${isFundPaid ? 'ตัดยอดจาก:' : (isShared ? 'สำรองจ่าย:' : 'ผู้จ่าย:')}</span>
+                      ${isFundPaid ? `
+                        <span class="font-semibold text-emerald-700 flex items-center gap-1">
+                          🐷 เงินกองกลางทริป
                         </span>
-                        ${payer.name}
-                      </span>
-                    `}
-                  </div>
+                      ` : `
+                        <span class="font-semibold text-slate-700 flex items-center gap-1.5">
+                          <span class="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] flex items-center justify-center overflow-hidden">
+                            ${payer.avatarUrl ? `<img src="${payer.avatarUrl}" class="w-full h-full object-cover"/>` : (payer.emoji || payer.name.charAt(0))}
+                          </span>
+                          ${payer.name}
+                        </span>
+                      `}
+                    </div>
+                  `}
                 </div>
 
                 ${item.note ? `
@@ -634,7 +734,7 @@
       const rate = Number(state.exchangeRate) || 650;
       const memberCount = Math.max(1, state.members.length);
       let totalThb = 0;
-      let fundSpentThb = 0; // ยอดที่ดึงจากเงินกองกลางไปจ่ายจริง
+      let fundSpentThb = 0;
       const catTotals = {};
 
       const memberStats = {};
@@ -644,6 +744,27 @@
 
       state.days.forEach(d => {
         d.items.forEach(item => {
+          if (item.splitMode === 'individual') {
+            // โหมดแยกยอดใครยอดมัน: คิดเข้าเป็นค่าใช้จ่ายส่วนตัวของแต่ละคนตามที่กรอก
+            const indMap = item.individualCosts || {};
+            let itemThbTotal = 0;
+            state.members.forEach(m => {
+              const rawVal = Number(indMap[m.id]) || 0;
+              if (rawVal > 0) {
+                const thbVal = item.currency === 'LAK' ? (rawVal / rate) : rawVal;
+                itemThbTotal += thbVal;
+                memberStats[m.id].paid += thbVal;
+                memberStats[m.id].share += thbVal;
+                memberStats[m.id].personal += thbVal;
+              }
+            });
+            totalThb += itemThbTotal;
+            if (itemThbTotal > 0) {
+              catTotals[item.category] = (catTotals[item.category] || 0) + itemThbTotal;
+            }
+            return;
+          }
+
           const raw = Number(item.cost) || 0;
           if (raw <= 0) return;
           const thb = item.currency === 'LAK' ? (raw / rate) : raw;
@@ -651,7 +772,6 @@
           catTotals[item.category] = (catTotals[item.category] || 0) + thb;
 
           if (item.payerId === 'CENTRAL_FUND') {
-            // ตัดยอดจากเงินกองกลาง -> หักออกจากคงเหลือกองกลาง ไม่คิดเป็นหนี้โอนระหว่างบุคคล
             fundSpentThb += thb;
           } else {
             const payerId = memberStats[item.payerId] ? item.payerId : state.members[0].id;
@@ -831,7 +951,7 @@
                     <div class="min-w-0">
                       <div class="font-bold text-xs text-slate-800 truncate">${st.member.name}</div>
                       <div class="text-[11px] text-slate-400">
-                        สำรองจ่าย ฿${Math.round(st.paid).toLocaleString()} • ส่วนแบ่ง ฿${Math.round(st.share).toLocaleString()}
+                        จ่ายจริง ฿${Math.round(st.paid).toLocaleString()} • ยอดของตัวเอง ฿${Math.round(st.share).toLocaleString()}
                         ${st.personal > 0 ? `<br/><span class="text-purple-600">(รวมค่าใช้จ่ายส่วนตัว ฿${Math.round(st.personal).toLocaleString()})</span>` : ''}
                       </div>
                     </div>
@@ -980,6 +1100,55 @@
       `;
     }
 
+    // ==================== QUICK INDIVIDUAL INPUT MODAL ====================
+    function openQuickIndModal(idx) {
+      const item = state.days[state.activeDayIdx].items[idx];
+      document.getElementById('qIndItemIdx').value = idx;
+      document.getElementById('qIndTitle').innerText = `${item.icon || '📍'} ${item.title}`;
+      const indMap = item.individualCosts || {};
+      const unit = item.currency === 'LAK' ? 'กีบ' : 'บาท';
+
+      document.getElementById('qIndMemberList').innerHTML = state.members.map(m => `
+        <div class="flex items-center justify-between gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center shrink-0 overflow-hidden">
+              ${m.avatarUrl ? `<img src="${m.avatarUrl}" class="w-full h-full object-cover"/>` : (m.emoji || m.name.charAt(0))}
+            </span>
+            <span class="text-xs font-bold text-slate-700 truncate">${m.name}</span>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <input type="number" id="qIndVal_${m.id}" value="${indMap[m.id] || ''}" placeholder="0"
+              class="w-24 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-right text-xs font-bold outline-none focus:border-[#334155]" />
+            <span class="text-[11px] text-slate-500">${unit}</span>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('quickIndModal').classList.remove('hidden');
+    }
+
+    function closeQuickIndModal() {
+      document.getElementById('quickIndModal').classList.add('hidden');
+    }
+
+    function saveQuickInd() {
+      const idx = Number(document.getElementById('qIndItemIdx').value);
+      const item = state.days[state.activeDayIdx].items[idx];
+      const newMap = {};
+      let sum = 0;
+      state.members.forEach(m => {
+        const el = document.getElementById('qIndVal_' + m.id);
+        const val = el ? (Number(el.value) || 0) : 0;
+        newMap[m.id] = val;
+        sum += val;
+      });
+      item.individualCosts = newMap;
+      item.cost = sum;
+      closeQuickIndModal();
+      renderApp();
+      saveState();
+    }
+
     // ==================== ACTIONS ====================
     function selectDay(idx) { state.activeDayIdx = idx; renderApp(); }
     function addNewDay() {
@@ -999,38 +1168,37 @@
     }
     function toggleShowAllCats() { state.showAllCats = !state.showAllCats; renderApp(); }
 
-    function onPayerChange() {
-      const payerVal = document.getElementById('mPayerId').value;
-      const splitRow = document.getElementById('splitModeRow');
-      const hint = document.getElementById('splitHintText');
-      if (payerVal === 'CENTRAL_FUND') {
-        splitRow.classList.add('hidden');
-        hint.innerText = '🐷 ระบบจะดึงเงินกองกลางไปหักลบโดยอัตโนมัติ (ไม่คิดยอดหนี้รายบุคคล)';
-        hint.className = 'text-[11px] text-emerald-700 font-medium text-center';
-      } else {
-        splitRow.classList.remove('hidden');
-        hint.className = 'text-[11px] text-slate-500 text-center';
-        setSplitMode(modalSplitMode);
-      }
-    }
-
     function setSplitMode(mode) {
       modalSplitMode = mode;
       const btnShared = document.getElementById('btnSplitShared');
-      const btnPersonal = document.getElementById('btnSplitPersonal');
+      const btnInd = document.getElementById('btnSplitIndividual');
+      const btnPers = document.getElementById('btnSplitPersonal');
+      const sharedZone = document.getElementById('sharedInputZone');
+      const indZone = document.getElementById('individualInputZone');
       const hint = document.getElementById('splitHintText');
-      if (mode === 'shared') {
-        btnShared.className = 'py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 bg-white border-[#334155] text-slate-800';
-        btnShared.innerHTML = '<span>◉</span> หารกับเพื่อนทุกคน';
-        btnPersonal.className = 'py-2.5 px-3 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 bg-white border-slate-200 text-slate-500';
-        btnPersonal.innerHTML = '<span>○</span> ไม่หาร (ส่วนตัว)';
-        hint.innerText = `ระบบจะหารยอดนี้เท่ากันทุกคน (${state.members.length} คน) อัตโนมัติ`;
+
+      const activeCls = 'py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-between bg-white border-[#334155] text-slate-800';
+      const inactiveCls = 'py-2 px-3 rounded-xl border text-xs font-medium flex items-center justify-between bg-white border-slate-200 text-slate-500';
+
+      btnShared.className = mode === 'shared' ? activeCls : inactiveCls;
+      btnShared.innerHTML = `<span><span>${mode === 'shared' ? '◉' : '○'}</span> บิลรวม (หารเท่ากันทุกคน / หักกองกลาง)</span>`;
+
+      btnInd.className = mode === 'individual' ? activeCls : inactiveCls;
+      btnInd.innerHTML = `<span><span>${mode === 'individual' ? '◉' : '○'}</span> แยกยอดใครยอดมัน (ต่างคนต่างใส่ราคาตัวเอง)</span>`;
+
+      btnPers.className = mode === 'personal' ? activeCls : inactiveCls;
+      btnPers.innerHTML = `<span><span>${mode === 'personal' ? '◉' : '○'}</span> จ่ายส่วนตัวคนเดียว (ไม่หารกับใคร)</span>`;
+
+      if (mode === 'individual') {
+        sharedZone.classList.add('hidden');
+        indZone.classList.remove('hidden');
+        hint.innerText = 'เหมาะสำหรับค่าตั๋วเครื่องบินหรือค่าใช้จ่ายที่แต่ละคนจ่ายเองในราคาไม่เท่ากัน';
       } else {
-        btnPersonal.className = 'py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 bg-white border-[#334155] text-slate-800';
-        btnPersonal.innerHTML = '<span>◉</span> ไม่หาร (ส่วนตัว)';
-        btnShared.className = 'py-2.5 px-3 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 bg-white border-slate-200 text-slate-500';
-        btnShared.innerHTML = '<span>○</span> หารกับเพื่อนทุกคน';
-        hint.innerText = 'รายการนี้คิดเป็นค่าใช้จ่ายส่วนตัวของผู้จ่ายคนเดียว ไม่นำไปหารกับเพื่อน';
+        sharedZone.classList.remove('hidden');
+        indZone.classList.add('hidden');
+        hint.innerText = mode === 'shared'
+          ? `ถ้าเลือกคนสำรองจ่าย ระบบจะหารเท่ากัน (${state.members.length} คน) อัตโนมัติ`
+          : 'คิดเป็นค่าใช้จ่ายส่วนตัวของผู้จ่ายคนเดียว ไม่นำไปหารกับเพื่อน';
       }
     }
 
@@ -1042,24 +1210,35 @@
         ${state.members.map(m => `<option value="${m.id}">${m.emoji || '🐰'} ${m.name} (สำรองจ่าย)</option>`).join('')}
       `;
 
-      if (idx >= 0) {
-        const item = state.days[state.activeDayIdx].items[idx];
+      const existingItem = idx >= 0 ? state.days[state.activeDayIdx].items[idx] : null;
+      const indMap = (existingItem && existingItem.individualCosts) ? existingItem.individualCosts : {};
+
+      document.getElementById('mIndMemberInputs').innerHTML = state.members.map(m => `
+        <div class="flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200">
+          <span class="text-xs font-medium text-slate-700 truncate">${m.emoji || '🐰'} ${m.name}</span>
+          <input type="number" id="mIndVal_${m.id}" value="${indMap[m.id] || ''}" placeholder="0"
+            class="w-24 text-right text-xs font-bold outline-none" />
+        </div>
+      `).join('');
+
+      if (existingItem) {
         document.getElementById('modalTitle').innerText = 'แก้ไขแพลนเที่ยว';
-        document.getElementById('mIcon').value = item.icon || '🏞️';
-        document.getElementById('mTitle').value = item.title;
-        document.getElementById('mTimeStart').value = item.timeStart || '08:30';
-        document.getElementById('mTimeEnd').value = item.timeEnd || '10:00';
-        document.getElementById('mTransport').value = item.transport || '🚐 รถตู้เหมา';
-        document.getElementById('mMapQuery').value = item.mapQuery || '';
-        document.getElementById('mBookingUrl').value = item.bookingUrl || '';
-        document.getElementById('mCategory').value = item.category || '🍜 ค่าอาหาร';
-        document.getElementById('mCost').value = item.cost || '';
-        document.getElementById('mCurrency').value = item.currency || 'LAK';
-        document.getElementById('mPayerId').value = item.payerId || state.members[0].id;
-        document.getElementById('mNote').value = item.note || '';
-        tempModalPhoto = item.photo || '';
-        document.getElementById('mPhotoUrl').value = (item.photo && item.photo.startsWith('http')) ? item.photo : '';
-        setSplitMode(item.splitMode || 'shared');
+        document.getElementById('mIcon').value = existingItem.icon || '🏞️';
+        document.getElementById('mTitle').value = existingItem.title;
+        document.getElementById('mTimeStart').value = existingItem.timeStart || '08:30';
+        document.getElementById('mTimeEnd').value = existingItem.timeEnd || '10:00';
+        document.getElementById('mTransport').value = existingItem.transport || '🚐 รถตู้เหมา';
+        document.getElementById('mMapQuery').value = existingItem.mapQuery || '';
+        document.getElementById('mBookingUrl').value = existingItem.bookingUrl || '';
+        document.getElementById('mCategory').value = existingItem.category || '🍜 ค่าอาหาร';
+        document.getElementById('mCost').value = existingItem.cost || '';
+        document.getElementById('mCurrency').value = existingItem.currency || 'LAK';
+        document.getElementById('mIndCurrency').value = existingItem.currency || 'THB';
+        document.getElementById('mPayerId').value = existingItem.payerId || state.members[0].id;
+        document.getElementById('mNote').value = existingItem.note || '';
+        tempModalPhoto = existingItem.photo || '';
+        document.getElementById('mPhotoUrl').value = (existingItem.photo && existingItem.photo.startsWith('http')) ? existingItem.photo : '';
+        setSplitMode(existingItem.splitMode || 'shared');
       } else {
         document.getElementById('modalTitle').innerText = 'เพิ่มแพลนเที่ยวใหม่';
         document.getElementById('mIcon').value = '🏞️';
@@ -1072,7 +1251,7 @@
         document.getElementById('mCategory').value = '🍜 ค่าอาหาร';
         document.getElementById('mCost').value = '';
         document.getElementById('mCurrency').value = 'LAK';
-        // ถ้ามีเงินกองกลางอยู่แล้ว ตั้งค่าเริ่มต้นให้ดึงจากกองกลางได้เลย
+        document.getElementById('mIndCurrency').value = 'THB';
         document.getElementById('mPayerId').value = state.centralFund.length > 0 ? 'CENTRAL_FUND' : getActiveUser().id;
         document.getElementById('mNote').value = '';
         tempModalPhoto = '';
@@ -1080,7 +1259,6 @@
         setSplitMode('shared');
       }
 
-      onPayerChange();
       updateModalPreview();
       document.getElementById('planModal').classList.remove('hidden');
     }
@@ -1120,6 +1298,20 @@
       if (!title) return alert('กรุณากรอกชื่อสถานที่หรือกิจกรรมครับ');
 
       const payerId = document.getElementById('mPayerId').value;
+      let cost = Number(document.getElementById('mCost').value) || 0;
+      let currency = document.getElementById('mCurrency').value;
+      const individualCosts = {};
+
+      if (modalSplitMode === 'individual') {
+        currency = document.getElementById('mIndCurrency').value;
+        cost = 0;
+        state.members.forEach(m => {
+          const el = document.getElementById('mIndVal_' + m.id);
+          const v = el ? (Number(el.value) || 0) : 0;
+          individualCosts[m.id] = v;
+          cost += v;
+        });
+      }
 
       const obj = {
         id: 'i' + Date.now(),
@@ -1131,10 +1323,11 @@
         mapQuery: document.getElementById('mMapQuery').value.trim() || title,
         bookingUrl: document.getElementById('mBookingUrl').value.trim(),
         category: document.getElementById('mCategory').value,
-        cost: Number(document.getElementById('mCost').value) || 0,
-        currency: document.getElementById('mCurrency').value,
+        cost,
+        currency,
         payerId,
-        splitMode: payerId === 'CENTRAL_FUND' ? 'fund' : modalSplitMode,
+        splitMode: modalSplitMode,
+        individualCosts,
         note: document.getElementById('mNote').value.trim(),
         photo: tempModalPhoto
       };

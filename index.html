@@ -2,131 +2,203 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>แพลนทริปลาว 3 วัน 2 คืน (Realtime + คำนวณระยะทาง + เพิ่มรูปไม่จำกัด)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Sabai Trip : ลาว 3 วัน 2 คืน</title>
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/826/826070.png" />
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/826/826070.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'IBM Plex Sans Thai', sans-serif; background-color: #f4f7f8; color: #1e293b; }
-    @media print { .no-print { display: none !important; } body { background: #fff; } }
+    body {
+      font-family: 'IBM Plex Sans Thai', sans-serif;
+      background-color: #f3f5f7;
+      color: #1e293b;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="pb-16">
+<body class="pb-24">
 
-  <!-- Top Navbar -->
-  <header class="bg-[#1E4D5C] text-white shadow-md sticky top-0 z-30">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-      <div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <h1 id="tripTitle" contenteditable="true" onblur="updateMeta('title', this.innerText)" class="text-xl md:text-2xl font-bold outline-none focus:bg-white/10 rounded px-1">
-            ลาว 3 วัน 2 คืน : วังเวียง – เมืองเฟือง – เวียงจันทน์
+  <!-- Mobile App Wrapper (Centered on Desktop, Full on Mobile) -->
+  <div class="max-w-md mx-auto min-h-screen bg-[#f3f5f7] relative shadow-sm">
+
+    <!-- Top App Header -->
+    <header class="bg-white/95 backdrop-blur sticky top-0 z-30 px-4 py-3 border-b border-slate-200/80 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-lg shrink-0">
+          🇱🇦
+        </div>
+        <div class="min-w-0">
+          <h1 id="headerTripTitle" onclick="editTripName()" class="font-bold text-slate-800 text-sm truncate cursor-pointer">
+            Sabai Laos 3D2N
           </h1>
-          <span id="syncStatus" class="text-xs bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 px-2 py-0.5 rounded-full">● เชื่อมต่อแล้ว</span>
+          <div class="flex items-center gap-1 text-[11px] text-amber-600 font-medium">
+            <span>👑</span>
+            <span id="syncBadge" class="text-emerald-600">ซิงก์เรียลไทม์</span>
+          </div>
         </div>
-        <p id="tripSubtitle" contenteditable="true" onblur="updateMeta('subtitle', this.innerText)" class="text-xs md:text-sm text-cyan-100 mt-0.5 outline-none focus:bg-white/10 rounded px-1">
-          เส้นทาง: อุดรธานี – หนองคาย – วังเวียง – เมืองเฟือง – เวียงจันทน์ | เดินทาง: 17 – 19 กรกฎาคม
-        </p>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2 no-print">
-        <div class="flex items-center bg-white/10 rounded-lg px-3 py-1.5 text-sm">
-          <span class="text-cyan-100 mr-2">จำนวนคน:</span>
-          <input id="memberCount" type="number" min="1" value="6" onchange="updateMembers(this.value)"
-            class="w-12 bg-white text-slate-800 font-bold text-center rounded px-1 py-0.5 outline-none" />
-          <span class="ml-1 text-cyan-100">คน</span>
-        </div>
-        <button onclick="window.print()" class="bg-white/15 hover:bg-white/25 text-white text-xs md:text-sm px-3 py-2 rounded-lg transition">
-          พิมพ์ / PDF
+      <!-- Current User Selector & Quick Actions -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button onclick="switchUserPrompt()" class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-full pl-1 pr-2.5 py-1 text-xs font-medium text-slate-700">
+          <span id="activeUserAvatar" class="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold overflow-hidden">K</span>
+          <span id="activeUserName" class="max-w-[68px] truncate">Kanyarat</span>
         </button>
-        <button onclick="resetToDefault()" class="bg-rose-500/80 hover:bg-rose-600 text-white text-xs md:text-sm px-3 py-2 rounded-lg transition">
-          รีเซ็ตค่าเริ่มต้น
+        <button onclick="copyShareLink()" title="แชร์ลิงก์ให้เพื่อน" class="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-50">
+          🔗
+        </button>
+        <button onclick="openToolModal()" title="เช็กระยะทาง & ตั้งค่า" class="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-50">
+          ⚙️
         </button>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <main class="max-w-6xl mx-auto px-4 mt-6 space-y-6">
+    <!-- Main Dynamic Tab Content -->
+    <main id="appContent" class="p-4 space-y-4"></main>
 
-    <!-- Quick Route Distance Calculator Tool -->
-    <section class="bg-white p-4 rounded-xl shadow-sm border border-cyan-200 no-print">
-      <div class="flex items-center justify-between mb-2 flex-wrap gap-1">
-        <h2 class="font-bold text-[#1E4D5C] text-sm md:text-base flex items-center gap-1.5">
-          🧭 เครื่องมือเช็กระยะทางด่วน (จากจุด A ไป จุด B)
-        </h2>
-        <span class="text-[11px] text-slate-400">พิมพ์ชื่อสถานที่ภาษาอังกฤษหรือไทย เช่น Udon Thani Airport, Vang Vieng, Patuxay</span>
+    <!-- Bottom Navigation Bar (4 Tabs like reference) -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40">
+      <div class="max-w-md mx-auto bg-white/95 backdrop-blur border-t border-slate-200 px-2 py-2 grid grid-cols-4 gap-1">
+        <button onclick="setTab('plan')" id="nav-plan" class="flex flex-col items-center justify-center py-1 rounded-xl text-[#2d3748] font-bold">
+          <span class="text-lg leading-none mb-1">📍</span>
+          <span class="text-[11px]">แพลนเที่ยว</span>
+        </button>
+        <button onclick="setTab('expense')" id="nav-expense" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400">
+          <span class="text-lg leading-none mb-1">👛</span>
+          <span class="text-[11px]">ค่าใช้จ่าย</span>
+        </button>
+        <button onclick="setTab('members')" id="nav-members" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400">
+          <span class="text-lg leading-none mb-1">👥</span>
+          <span class="text-[11px]">เพื่อนทริป</span>
+        </button>
+        <button onclick="setTab('chat')" id="nav-chat" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 relative">
+          <span class="text-lg leading-none mb-1">💬</span>
+          <span class="text-[11px]">แชทกลุ่ม</span>
+        </button>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
-        <div class="md:col-span-4">
-          <input id="calcFrom" type="text" placeholder="จุดเริ่มต้น (เช่น สนามบินอุดรธานี)" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#2E7D8B]" />
+    </nav>
+  </div>
+
+  <!-- Modal for Add / Edit Plan Item -->
+  <div id="planModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3.5 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <h3 id="modalTitle" class="font-bold text-base text-slate-800">+ เพิ่มแพลนเที่ยว</h3>
+        <button onclick="closePlanModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500">✕</button>
+      </div>
+
+      <input type="hidden" id="editItemIdx" value="-1" />
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div>
+          <label class="text-xs font-medium text-slate-500">ช่วงเวลา</label>
+          <input id="mTime" type="text" placeholder="เช่น 08:30 - 10:00" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#334155]" />
         </div>
-        <div class="md:col-span-4">
-          <input id="calcTo" type="text" placeholder="จุดหมายปลายทาง (เช่น วังเวียง)" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#2E7D8B]" />
+        <div>
+          <label class="text-xs font-medium text-slate-500">หมวดหมู่</label>
+          <select id="mCategory" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none bg-white">
+            <option value="🚗 เดินทาง">🚗 เดินทาง</option>
+            <option value="🏞️ ที่เที่ยว">🏞️ ที่เที่ยว</option>
+            <option value="🍜 ค่าอาหาร">🍜 ค่าอาหาร</option>
+            <option value="☕ คาเฟ่">☕ คาเฟ่</option>
+            <option value="🏨 ที่พัก">🏨 ที่พัก</option>
+            <option value="🎫 ค่าเข้า/กิจกรรม">🎫 ค่าเข้า/กิจกรรม</option>
+          </select>
         </div>
-        <div class="md:col-span-4 flex gap-2">
-          <button onclick="quickCalcDistance()" id="calcBtn" class="flex-1 bg-[#2E7D8B] hover:bg-[#1E4D5C] text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
-            คำนวณระยะทาง
-          </button>
-          <a id="gmapQuickLink" href="https://www.google.com/maps" target="_blank" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center justify-center">
-            Google Maps ↗
-          </a>
+      </div>
+
+      <div>
+        <label class="text-xs font-medium text-slate-500">ชื่อสถานที่ / กิจกรรม</label>
+        <input id="mTitle" type="text" placeholder="เช่น จุดชมวิวผาหนามไซ" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#334155]" />
+      </div>
+
+      <div class="grid grid-cols-12 gap-2">
+        <div class="col-span-5">
+          <label class="text-xs font-medium text-slate-500">ค่าใช้จ่าย</label>
+          <input id="mCost" type="number" placeholder="0" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#334155]" />
+        </div>
+        <div class="col-span-3">
+          <label class="text-xs font-medium text-slate-500">สกุลเงิน</label>
+          <select id="mCurrency" class="w-full mt-1 border border-slate-200 rounded-xl px-2 py-2 text-sm outline-none bg-white">
+            <option value="THB">บาท</option>
+            <option value="LAK">กีบ</option>
+          </select>
+        </div>
+        <div class="col-span-4">
+          <label class="text-xs font-medium text-slate-500">การหาร</label>
+          <select id="mSplitType" class="w-full mt-1 border border-slate-200 rounded-xl px-2 py-2 text-sm outline-none bg-white">
+            <option value="per_person">จ่ายต่อคน</option>
+            <option value="shared">หารร่วมกัน</option>
+          </select>
         </div>
       </div>
-      <div id="calcResult" class="hidden mt-2.5 text-sm bg-[#F2F7F8] text-[#1E4D5C] px-3 py-2 rounded-lg border border-cyan-200 flex flex-wrap items-center justify-between gap-2"></div>
-    </section>
 
-    <!-- Live Budget Summary -->
-    <section class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div class="text-xs text-slate-500">ค่าใช้จ่ายส่วนตัว / คน</div>
-        <div id="sumPersonal" class="text-xl md:text-2xl font-bold text-[#1E4D5C] mt-1">0 ฿</div>
-        <div class="text-[11px] text-slate-400 mt-0.5">ตั๋วเครื่องบิน, ซิม, ค่าข้ามด่าน</div>
-      </div>
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div class="text-xs text-slate-500">ส่วนกลาง & ที่พัก (หารแล้ว / คน)</div>
-        <div id="sumShared" class="text-xl md:text-2xl font-bold text-[#2E7D8B] mt-1">0 ฿</div>
-        <div class="text-[11px] text-slate-400 mt-0.5">รถตู้, ทางด่วน, ที่พัก 2 คืน</div>
-      </div>
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div class="text-xs text-slate-500">ค่ากิน & เที่ยวตามแพลน / คน</div>
-        <div id="sumActivities" class="text-xl md:text-2xl font-bold text-teal-600 mt-1">0 ฿</div>
-        <div class="text-[11px] text-slate-400 mt-0.5">รวมจากตาราง Day 1 – Day 3</div>
-      </div>
-      <div class="bg-[#1E4D5C] text-white p-4 rounded-xl shadow-sm">
-        <div class="text-xs text-cyan-200">งบประมาณสุทธิต่อคน</div>
-        <div id="sumTotalPerPerson" class="text-2xl md:text-3xl font-bold mt-1">0 ฿</div>
-        <div id="sumTotalGroup" class="text-xs text-cyan-200 mt-0.5">รวมทั้งทริป (6 คน): 0 ฿</div>
-      </div>
-    </section>
-
-    <!-- Prep & Shared Expenses -->
-    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="bg-[#FBF8F3] border border-[#E2D9C8] rounded-xl p-4 shadow-sm">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="font-bold text-[#1E4D5C]">รายการที่รับผิดชอบตัวเอง (ต่อคน)</h2>
-          <button onclick="addExpense('personal')" class="no-print text-xs bg-[#1E4D5C] text-white px-2.5 py-1 rounded-lg hover:bg-[#163a46]">+ เพิ่มรายการ</button>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs font-medium text-slate-500">คนสำรองจ่าย</label>
+          <select id="mPayer" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none bg-white"></select>
         </div>
-        <div id="personalList" class="space-y-2"></div>
-      </div>
-
-      <div class="bg-[#F2F7F8] border border-[#C5DCE0] rounded-xl p-4 shadow-sm">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="font-bold text-[#1E4D5C]">รายการส่วนกลาง & ที่พัก</h2>
-          <button onclick="addExpense('shared')" class="no-print text-xs bg-[#2E7D8B] text-white px-2.5 py-1 rounded-lg hover:bg-[#23636e]">+ เพิ่มรายการ</button>
+        <div>
+          <label class="text-xs font-medium text-slate-500">ชื่อค้นหา Maps (อังกฤษ)</label>
+          <input id="mMapQuery" type="text" placeholder="เช่น Vang Vieng" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none" />
         </div>
-        <div id="sharedList" class="space-y-2"></div>
       </div>
-    </section>
 
-    <!-- Daily Itinerary Container -->
-    <div id="daysContainer" class="space-y-6"></div>
+      <div>
+        <label class="text-xs font-medium text-slate-500">โน้ต / คำแนะนำเพิ่มเติม</label>
+        <input id="mNote" type="text" placeholder="เช่น ควรจองล่วงหน้า / ค่าเข้า 30,000 กีบ" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none" />
+      </div>
 
-    <div class="text-center no-print">
-      <button onclick="addDay()" class="bg-white border-2 border-dashed border-[#2E7D8B] text-[#1E4D5C] font-semibold px-5 py-2.5 rounded-xl hover:bg-[#F2F7F8] transition">
-        + เพิ่มวันเดินทางใหม่
+      <div>
+        <label class="text-xs font-medium text-slate-500 block mb-1">รูปภาพประกอบ (ถ้ามี)</label>
+        <div class="flex items-center gap-2">
+          <label class="flex-1 border border-dashed border-slate-300 rounded-xl py-2.5 text-center text-xs text-slate-600 cursor-pointer hover:bg-slate-50">
+            📷 เลือกรูปจากมือถือ
+            <input type="file" accept="image/*" class="hidden" onchange="handleModalPhoto(this)" />
+          </label>
+          <button type="button" onclick="clearModalPhoto()" class="text-xs text-rose-500 px-2 py-2">ลบรูป</button>
+        </div>
+        <img id="mPhotoPreview" class="hidden w-full h-36 object-cover rounded-xl mt-2 border border-slate-200" />
+      </div>
+
+      <button onclick="savePlanItem()" class="w-full bg-[#334155] hover:bg-[#1e293b] text-white font-semibold py-3 rounded-xl text-sm shadow">
+        บันทึกแพลนเที่ยว
       </button>
     </div>
-  </main>
+  </div>
+
+  <!-- Modal for Distance Calculator & Reset -->
+  <div id="toolModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-base text-slate-800">🧭 เช็กระยะทาง & ตั้งค่าทริป</h3>
+        <button onclick="closeToolModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500">✕</button>
+      </div>
+
+      <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5">
+        <div class="text-xs font-bold text-slate-700">คำนวณระยะทางระหว่าง 2 จุด (ฟรี)</div>
+        <input id="tFrom" type="text" placeholder="จุดเริ่มต้น (เช่น Udon Thani Airport)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none" />
+        <input id="tTo" type="text" placeholder="จุดหมาย (เช่น Vang Vieng)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none" />
+        <button onclick="calcDistanceTool()" id="tCalcBtn" class="w-full bg-[#334155] text-white text-xs font-semibold py-2.5 rounded-xl">
+          คำนวณระยะทาง & เวลาขับรถ
+        </button>
+        <div id="tCalcResult" class="hidden text-xs bg-emerald-50 text-emerald-800 p-2.5 rounded-xl border border-emerald-200"></div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100 flex justify-between items-center">
+        <span class="text-xs text-slate-500">คืนค่าข้อมูลเริ่มต้นทั้งหมด</span>
+        <button onclick="resetAllData()" class="text-xs bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-xl font-medium">
+          รีเซ็ตทริป
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script>
     // =========================================================================
@@ -134,512 +206,686 @@
     // =========================================================================
     const SUPABASE_URL = 'https://dpnjxiubushiltkhruip.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_shO55VWbtMIy-rcQUy0FGQ_uXvNRhKj';
-    const TRIP_ID = 'laos-3d2n-main';
+    const TRIP_ID = 'laos-3d2n-mobile-v1';
 
     const isConfigured = SUPABASE_URL.startsWith('http');
     const sb = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
     const DEFAULT_STATE = {
-      title: 'ลาว 3 วัน 2 คืน : วังเวียง – เมืองเฟือง – เวียงจันทน์',
-      subtitle: 'เส้นทาง: อุดรธานี – หนองคาย – วังเวียง – เมืองเฟือง – เวียงจันทน์ | เดินทาง: 17 – 19 กรกฎาคม | เรทอ้างอิง: 1,000 กีบ ≈ 1.5 บาท',
-      members: 6,
-      personalExpenses: [
-        { id: 'p1', name: 'ตั๋วเครื่องบินไป–กลับ', note: 'จองเองตามรอบบิน', cost: 3000 },
-        { id: 'p2', name: 'ซิมเน็ต / โรมมิ่งลาว', note: 'ใช้งาน 3 วัน', cost: 200 },
-        { id: 'p3', name: 'ค่าธรรมเนียมข้ามด่านไป–กลับ', note: 'ฝั่งไทย ~35 บ. + ฝั่งลาว ~100 บ.', cost: 150 },
-        { id: 'p4', name: 'พาสปอร์ต (Passport)', note: 'เช็กอายุคงเหลือ > 6 เดือน', cost: 0 }
+      tripName: 'Sabai Laos 3D2N',
+      exchangeRate: 650, // 1 บาท = 650 กีบ
+      activeDayIdx: 0,
+      members: [
+        { id: 'm1', name: 'Kanyarat', role: 'เจ้าของทริป', emoji: '🐰', avatarUrl: '' },
+        { id: 'm2', name: 'เพื่อนร่วมทริป 2', role: 'สมาชิก', emoji: '🐻', avatarUrl: '' }
       ],
-      sharedExpenses: [
-        { id: 's1', name: 'รถตู้เช่าพร้อมคนขับ (3 วัน)', note: 'ราคาเหมาทั้งคัน (หารตามจำนวนคน)', cost: 9000, split: true },
-        { id: 's2', name: 'ค่าทางด่วนลาว (ไป–กลับ)', note: 'เวียงจันทน์–วังเวียง–เมืองเฟือง (หารตามจำนวนคน)', cost: 400, split: true },
-        { id: 's3', name: 'ที่พักคืนที่ 1 (วังเวียง)', note: 'ราคาเฉลี่ยต่อคน', cost: 900, split: false },
-        { id: 's4', name: 'ที่พักคืนที่ 2 (แพริมน้ำเมืองเฟือง)', note: 'ราคาเฉลี่ยต่อคน', cost: 1100, split: false }
+      centralFund: [
+        { id: 'cf1', by: 'Kanyarat', amount: 0, note: 'กองกลางเริ่มต้น' }
+      ],
+      notes: `📌 สิ่งที่ต้องเตรียม:\n- พาสปอร์ต (อายุเหลือมากกว่า 6 เดือน)\n- ตั๋วเครื่องบินไป-กลับ (~3,000 บาท)\n- ซิมเน็ต / โรมมิ่งลาว\n- ค่าธรรมเนียมข้ามด่านฝั่งลาว (~100 บาท/คน)\n- รองเท้าผ้าใบสำหรับขึ้นจุดชมวิวผาหนามไซ`,
+      messages: [
+        { id: 'msg1', senderId: 'm2', text: 'สวัสดีทุกคน! พร้อมไปเที่ยวลาวกันยังง 🇱🇦✨', time: '10:00' },
+        { id: 'msg2', senderId: 'm1', text: 'พร้อมมากก แพลน 3 วัน 2 คืน วังเวียง-เมืองเฟือง-เวียงจันทน์ ครบแล้วจ้า', time: '10:02' }
       ],
       days: [
         {
-          id: 'day1',
-          title: 'DAY 1 (17 July) : อุดรธานี – หนองคาย – วังเวียง',
-          stay: 'พักคืนที่ 1 : วังเวียง',
+          id: 'd1',
+          label: 'Day 1',
+          route: 'อุดรฯ -> หนองคาย -> วังเวียง (17 July)',
           items: [
-            { id: 'd1_1', time: '06:20–07:20', title: 'สนามบินอุดรธานี', mapQuery: 'Udon Thani International Airport', desc: 'บินเช้าถึงสนามบินอุดรฯ เจอกันที่จุดนัดพบรถตู้', cost: 0, distInfo: '' },
-            { id: 'd1_2', time: '07:30', title: 'ด่านพรมแดนหนองคาย', mapQuery: 'Thai-Lao Friendship Bridge Nong Khai', desc: 'ออกจากสนามบินอุดรฯ ไปด่านหนองคาย', cost: 0, distInfo: '60 กม. (~1 ชม.)' },
-            { id: 'd1_3', time: '09:00', title: 'อาหารเช้าที่หนองคาย', mapQuery: 'Nong Khai', desc: 'แวะทานมื้อเช้าก่อนข้ามด่าน', cost: 120, distInfo: '' },
-            { id: 'd1_4', time: '10:00', title: 'ทำเรื่องข้ามด่าน (~30 นาที)', mapQuery: 'Friendship Bridge Laos Border', desc: 'ประทับตราเข้าเมืองฝั่งลาว (~100 บ./คน)', cost: 100, distInfo: '' },
-            { id: 'd1_5', time: '10:30', title: 'เมืองวังเวียง (Vang Vieng)', mapQuery: 'Vang Vieng, Laos', desc: 'เดินทางจากด่านไปวังเวียง วิ่งทางด่วน', cost: 0, distInfo: '150 กม. (~2 ชม. 30 นาที)' },
-            { id: 'd1_6', time: '13:00', title: 'ถึงวังเวียง ทานอาหารกลางวัน', mapQuery: 'Vang Vieng, Laos', desc: 'ร้านอาหารท้องถิ่นในวังเวียง', cost: 150, distInfo: '' },
-            { id: 'd1_7', time: 'บ่าย', title: 'Sky Club (ควรจองล่วงหน้า)', mapQuery: 'Vang Vieng, Laos', desc: 'ค่าเข้าถ่ายรูปบอลลูน ~80 บ. (หากขึ้นบอลลูน/พารามอเตอร์ ~3,500-4,000 บ.)', cost: 80, distInfo: '' },
-            { id: 'd1_8', time: 'บ่าย', title: 'จุดชมวิวผาหนามไซ (Nam Xay)', mapQuery: 'Pha Ngern Viewpoint Vang Vieng', desc: 'ค่าเข้า ~30,000 กีบ (~45-50 บ./คน)', cost: 50, distInfo: '' },
-            { id: 'd1_9', time: 'บ่าย', title: 'บลูลากูน (Blue Lagoon 1 / 2 / 3)', mapQuery: 'Blue Lagoon 1 Vang Vieng', desc: 'ค่าเข้า ~20,000 กีบ (~30-35 บ./คน)', cost: 35, distInfo: '' },
-            { id: 'd1_10', time: 'เย็น', title: 'ล่องเรือแม่น้ำซอง', mapQuery: 'Nam Song River Vang Vieng', desc: 'ชมวิวภูเขาช่วงเย็น (~270 บ./2 คน)', cost: 135, distInfo: '' },
-            { id: 'd1_11', time: 'เย็น', title: 'คาเฟ่วังเวียง', mapQuery: 'Pullmind Cafe Vang Vieng', desc: 'Pullmind / Vieng Tara / Amari', cost: 150, distInfo: '' },
-            { id: 'd1_12', time: 'ค่ำ', title: 'Check-in โรงแรมวังเวียง + อาหารเย็น', mapQuery: 'Vang Vieng, Laos', desc: 'พักผ่อนตามอัธยาศัย', cost: 200, distInfo: '' }
-          ],
-          photos: [
-            { caption: 'ไฮไลต์วังเวียง / ผาหนามไซ', url: '' },
-            { caption: 'ล่องเรือแม่น้ำซอง / คาเฟ่', url: '' }
+            { id: 'i1', time: '06:20 - 07:20', category: '🚗 เดินทาง', title: 'บินเช้าถึงสนามบินอุดรธานี', cost: 3000, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'รับกระเป๋า เจอกันที่รถตู้ (07:30 ออกเดินทางไปด่านหนองคาย 60 กม. ~1 ชม.)', mapQuery: 'Udon Thani International Airport', photo: '' },
+            { id: 'i2', time: '09:00 - 10:30', category: '🍜 ค่าอาหาร', title: 'อาหารเช้าหนองคาย & ทำเรื่องข้ามด่าน', cost: 220, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'ข้ามด่าน ~30 นาที | ค่าประทับตราฝั่งลาว ~100 บาท/คน', mapQuery: 'Thai-Lao Friendship Bridge Nong Khai', photo: '' },
+            { id: 'i3', time: '10:30 - 13:00', category: '🚗 เดินทาง', title: 'เดินทางจากด่านไปวังเวียง (ทางด่วน)', cost: 400, currency: 'THB', splitType: 'shared', payer: 'Kanyarat', note: 'ระยะทาง 150 กม. (~2.30 ชม.) ถึงวังเวียงแวะทานข้าวกลางวัน', mapQuery: 'Vang Vieng, Laos', photo: '' },
+            { id: 'i4', time: '14:00 - 16:30', category: '🏞️ ที่เที่ยว', title: 'Sky Club & จุดชมวิวผาหนามไซ', cost: 85000, currency: 'LAK', splitType: 'per_person', payer: 'Kanyarat', note: 'Sky Club ค่าเข้า 80 บ. (ขึ้นบอลลูน ~4,000 บ.) | ผาหนามไซ ~30,000 กีบ', mapQuery: 'Pha Ngern Viewpoint Vang Vieng', photo: '' },
+            { id: 'i5', time: '16:30 - 18:30', category: '🏞️ ที่เที่ยว', title: 'บลูลากูน & ล่องเรือแม่น้ำซอง', cost: 170, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'บลูลากูน ~20,000 กีบ | ล่องเรือแม่น้ำซอง ~270 บาท / 2 คน', mapQuery: 'Blue Lagoon 1 Vang Vieng', photo: '' },
+            { id: 'i6', time: '18:30 - 21:00', category: '🏨 ที่พัก', title: 'คาเฟ่วังเวียง + Check-in ที่พักคืนที่ 1', cost: 1100, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'Pullmind Cafe / Vieng Tara + ทานอาหารเย็นและพักผ่อน', mapQuery: 'Vang Vieng, Laos', photo: '' }
           ]
         },
         {
-          id: 'day2',
-          title: 'DAY 2 (18 July) : วังเวียง – เมืองเฟือง',
-          stay: 'พักคืนที่ 2 : แพริมน้ำเมืองเฟือง',
+          id: 'd2',
+          label: 'Day 2',
+          route: 'วังเวียง -> เมืองเฟือง (18 July)',
           items: [
-            { id: 'd2_1', time: '08:00', title: 'เช็คเอาท์โรงแรมวังเวียง', mapQuery: 'Vang Vieng, Laos', desc: 'เตรียมสัมภาระขึ้นรถตู้', cost: 0, distInfo: '' },
-            { id: 'd2_2', time: '08:30', title: 'เที่ยวเก็บตกช่วงเช้าก่อนออกเดินทาง', mapQuery: 'Tham Chang Cave Vang Vieng', desc: 'ถ้ำจัง (~25 บ.) / สะพานส้ม (~15 บ.) / คาเฟ่เช้า', cost: 100, distInfo: '' },
-            { id: 'd2_3', time: '10:30', title: 'เมืองเฟือง (Muang Feuang)', mapQuery: 'Muang Feuang, Laos', desc: 'เดินทางจาก วังเวียง ไป เมืองเฟือง', cost: 0, distInfo: '100 กม. (~2 ชม. 30 นาที)' },
-            { id: 'd2_4', time: '13:00', title: 'ถึงเมืองเฟือง ทานอาหารกลางวัน + Check-in แพริมน้ำ', mapQuery: 'Muang Feuang, Laos', desc: 'เข้าที่พักริมแม่น้ำลีก', cost: 150, distInfo: '' },
-            { id: 'd2_5', time: 'บ่าย', title: 'ล่องแพ / พายคายัค แม่น้ำลีก', mapQuery: 'Muang Feuang, Laos', desc: 'ชมวิวภูเขาหินปูน (~100,000–150,000 กีบ/ลำ)', cost: 200, distInfo: '' },
-            { id: 'd2_6', time: 'บ่าย', title: 'วัดสินไชยาราม / จุดชมวิวผาตั้ง', mapQuery: 'Wat Sinxayaram Muang Feuang', desc: 'ไหว้พระขอพร ถ่ายรูปวิวเขา (เข้าชมฟรี)', cost: 0, distInfo: '' },
-            { id: 'd2_7', time: 'เย็น', title: 'สั่งจองชุดตักบาตรริมน้ำ (สำหรับเช้า Day 3)', mapQuery: 'Muang Feuang, Laos', desc: 'แจ้งที่พักล่วงหน้า (~60,000 กีบ/ชุด)', cost: 100, distInfo: '' },
-            { id: 'd2_8', time: 'ค่ำ', title: 'พักผ่อนริมแพ + อาหารเย็น / หมูกระทะริมน้ำ', mapQuery: 'Muang Feuang, Laos', desc: 'บรรยากาศชิลๆ ริมน้ำ', cost: 200, distInfo: '' }
-          ],
-          photos: [
-            { caption: 'บรรยากาศแพริมน้ำเมืองเฟือง', url: '' },
-            { caption: 'ล่องแพแม่น้ำลีก / วิวภูเขา', url: '' }
+            { id: 'i2_1', time: '08:00 - 10:30', category: '☕ คาเฟ่', title: 'เช็คเอาท์ & เที่ยวเก็บตกช่วงเช้า', cost: 100, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'แวะถ้ำจัง / สะพานส้ม / คาเฟ่เช้าก่อนออกจากวังเวียง', mapQuery: 'Tham Chang Cave Vang Vieng', photo: '' },
+            { id: 'i2_2', time: '10:30 - 13:00', category: '🚗 เดินทาง', title: 'เดินทางจาก วังเวียง ไป เมืองเฟือง', cost: 0, currency: 'THB', splitType: 'shared', payer: 'Kanyarat', note: 'ระยะทาง 100 กม. (~2.30 ชม.)', mapQuery: 'Muang Feuang, Laos', photo: '' },
+            { id: 'i2_3', time: '13:00 - 17:30', category: '🏞️ ที่เที่ยว', title: 'Check-in แพริมน้ำ & ล่องแพแม่น้ำลีก', cost: 150000, currency: 'LAK', splitType: 'per_person', payer: 'Kanyarat', note: 'พายคายัค / ล่องแพชมวิวภูเขาหินปูน / ไหว้พระวัดสินไชยาราม', mapQuery: 'Muang Feuang, Laos', photo: '' },
+            { id: 'i2_4', time: '18:00 - 21:00', category: '🏨 ที่พัก', title: 'พักแพริมน้ำเมืองเฟือง คืนที่ 2 + หมูกระทะ', cost: 1300, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: 'อย่าลืมสั่งจองชุดตักบาตรริมน้ำกับที่พักสำหรับเช้าพรุ่งนี้ (~60,000 กีบ)', mapQuery: 'Muang Feuang, Laos', photo: '' }
           ]
         },
         {
-          id: 'day3',
-          title: 'DAY 3 (19 July) : เมืองเฟือง – เวียงจันทน์ – สนามบินอุดรฯ',
-          stay: 'เดินทางกลับ',
+          id: 'd3',
+          label: 'Day 3',
+          route: 'เมืองเฟือง -> เวียงจันทน์ -> สนามบินอุดรฯ (19 July)',
           items: [
-            { id: 'd3_1', time: '06:30', title: 'ตักบาตรพระสงฆ์ริมน้ำยามเช้า + อาหารเช้าที่พัก', mapQuery: 'Muang Feuang, Laos', desc: 'พระพายเรือรับบาตรหน้าแพ', cost: 0, distInfo: '' },
-            { id: 'd3_2', time: '09:00', title: 'เช็คเอาท์ที่พักเมืองเฟือง', mapQuery: 'Muang Feuang, Laos', desc: 'เตรียมเดินทางเข้าเวียงจันทน์', cost: 0, distInfo: '' },
-            { id: 'd3_3', time: '09:30', title: 'นครหลวงเวียงจันทน์ (Vientiane)', mapQuery: 'Vientiane, Laos', desc: 'เดินทางจาก เมืองเฟือง ไป เมืองเวียงจันทน์', cost: 0, distInfo: '140 กม. (~2 ชม. 30 นาที)' },
-            { id: 'd3_4', time: '12:00', title: 'ถึงเวียงจันทน์ ทานอาหารกลางวัน', mapQuery: 'Vientiane, Laos', desc: 'เฝอแซ่บ / แหนมเนืองเวียงจันทน์', cost: 150, distInfo: '' },
-            { id: 'd3_5', time: 'บ่าย', title: 'พระธาตุหลวงเวียงจันทน์', mapQuery: 'Pha That Luang Vientiane', desc: 'ลานด้านนอกฟรี / เข้าด้านใน (~30,000 กีบ)', cost: 50, distInfo: '' },
-            { id: 'd3_6', time: 'บ่าย', title: 'ประตูชัย (Patuxay)', mapQuery: 'Patuxay Vientiane', desc: 'ถ่ายรูปรอบนอกฟรี / ขึ้นชมวิวชั้นบน (~30,000 กีบ)', cost: 50, distInfo: '' },
-            { id: 'd3_7', time: 'บ่าย', title: 'วัดสีสะเกด / หอพระแก้ว (ทางเลือก)', mapQuery: 'Wat Si Saket Vientiane', desc: 'ค่าเข้าชม ~30,000 กีบ', cost: 50, distInfo: '' },
-            { id: 'd3_8', time: 'บ่าย', title: 'คาเฟ่เวียงจันทน์ / แวะซื้อของฝาก', mapQuery: 'Joma Bakery Cafe Vientiane', desc: 'Joma Bakery / ร้านกาแฟ', cost: 150, distInfo: '' },
-            { id: 'd3_9', time: '15:30', title: 'ด่านพรมแดนหนองคาย', mapQuery: 'Thai-Lao Friendship Bridge Nong Khai', desc: 'เดินทางไปด่านฯ ทำเรื่องข้ามกลับหนองคาย (~30-50 บ./คน)', cost: 50, distInfo: '25 กม. (~40 นาที)' },
-            { id: 'd3_10', time: '18:30', title: 'สนามบินอุดรธานี', mapQuery: 'Udon Thani International Airport', desc: 'ถึงสนามบินอุดรธานี เช็คอินก่อนบิน', cost: 0, distInfo: '60 กม. (~1 ชม.)' },
-            { id: 'd3_11', time: '19:20', title: 'ขึ้นเครื่องกลับโดยสวัสดิภาพ', mapQuery: 'Udon Thani International Airport', desc: 'จบทริป 3 วัน 2 คืน', cost: 0, distInfo: '' }
-          ],
-          photos: [
-            { caption: 'ตักบาตรยามเช้าเมืองเฟือง', url: '' },
-            { caption: 'พระธาตุหลวง / ประตูชัย เวียงจันทน์', url: '' }
+            { id: 'i3_1', time: '06:30 - 09:00', category: '🎫 ค่าเข้า/กิจกรรม', title: 'ตักบาตรพระสงฆ์ริมน้ำยามเช้า + เช็คเอาท์', cost: 60000, currency: 'LAK', splitType: 'per_person', payer: 'Kanyarat', note: 'พระพายเรือรับบาตรหน้าแพ + ทานอาหารเช้าที่พัก', mapQuery: 'Muang Feuang, Laos', photo: '' },
+            { id: 'i3_2', time: '09:30 - 12:00', category: '🚗 เดินทาง', title: 'เดินทางจาก เมืองเฟือง ไป เวียงจันทน์', cost: 0, currency: 'THB', splitType: 'shared', payer: 'Kanyarat', note: 'ระยะทาง 140 กม. (~2.30 ชม.) ถึงเวียงจันทน์ทานมื้อกลางวัน', mapQuery: 'Vientiane, Laos', photo: '' },
+            { id: 'i3_3', time: '13:00 - 15:30', category: '🏞️ ที่เที่ยว', title: 'พระธาตุหลวง & ประตูชัย & คาเฟ่เวียงจันทน์', cost: 60000, currency: 'LAK', splitType: 'per_person', payer: 'Kanyarat', note: 'ค่าเข้าด้านในจุดละ ~30,000 กีบ | แวะ Joma Bakery ซื้อของฝาก', mapQuery: 'Pha That Luang Vientiane', photo: '' },
+            { id: 'i3_4', time: '15:30 - 19:20', category: '🚗 เดินทาง', title: 'ข้ามด่านหนองคาย -> สนามบินอุดรธานี', cost: 50, currency: 'THB', splitType: 'per_person', payer: 'Kanyarat', note: '18:30 ถึงสนามบินอุดรฯ | 19:20 ขึ้นเครื่องกลับโดยสวัสดิภาพ', mapQuery: 'Udon Thani International Airport', photo: '' }
           ]
         }
       ]
     };
 
     let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    let currentTab = 'plan';
+    let activeUserId = localStorage.getItem('sabai_active_user') || 'm1';
+    let tempModalPhoto = '';
     let saveTimer = null;
-
-    async function geocodePlace(query) {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (!data || data.length === 0) throw new Error(`ไม่พบสถานที่ "${query}"`);
-      return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), displayName: data[0].display_name };
-    }
-
-    async function fetchRouteDistance(fromText, toText) {
-      const p1 = await geocodePlace(fromText);
-      const p2 = await geocodePlace(toText);
-      const routeUrl = `https://router.project-osrm.org/route/v1/driving/${p1.lon},${p1.lat};${p2.lon},${p2.lat}?overview=false`;
-      const res = await fetch(routeUrl);
-      const data = await res.json();
-      if (!data.routes || data.routes.length === 0) throw new Error('ไม่สามารถคำนวณเส้นทางรถยนต์ระหว่างสองจุดนี้ได้');
-
-      const distKm = (data.routes[0].distance / 1000).toFixed(1);
-      const totalMins = Math.round(data.routes[0].duration / 60);
-      const hrs = Math.floor(totalMins / 60);
-      const mins = totalMins % 60;
-      const timeStr = hrs > 0 ? `${hrs} ชม. ${mins} นาที` : `${mins} นาที`;
-      const gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(fromText)}&destination=${encodeURIComponent(toText)}&travelmode=driving`;
-
-      return { distKm, timeStr, gmapUrl };
-    }
-
-    async function quickCalcDistance() {
-      const from = document.getElementById('calcFrom').value.trim();
-      const to = document.getElementById('calcTo').value.trim();
-      const resBox = document.getElementById('calcResult');
-      const btn = document.getElementById('calcBtn');
-      if (!from || !to) return alert('กรุณากรอกทั้งจุดเริ่มต้นและจุดหมายปลายทางครับ');
-
-      btn.innerText = 'กำลังคำนวณ...';
-      btn.disabled = true;
-      try {
-        const info = await fetchRouteDistance(from, to);
-        resBox.classList.remove('hidden');
-        resBox.innerHTML = `
-          <div>
-            <strong>${from}</strong> ➔ <strong>${to}</strong> :
-            ระยะทาง <span class="font-bold text-teal-700">${info.distKm} กม.</span> (ใช้เวลาขับรถประมาณ <span class="font-bold text-teal-700">${info.timeStr}</span>)
-          </div>
-          <a href="${info.gmapUrl}" target="_blank" class="text-xs bg-[#1E4D5C] text-white px-2.5 py-1 rounded hover:bg-[#153742]">ดูเส้นทางใน Google Maps ↗</a>
-        `;
-        document.getElementById('gmapQuickLink').href = info.gmapUrl;
-      } catch (err) {
-        alert(err.message + '\nคำแนะนำ: ลองพิมพ์ชื่อสถานที่ให้ชัดเจนขึ้น เช่น Vang Vieng, Patuxay Vientiane, Nong Khai');
-      } finally {
-        btn.innerText = 'คำนวณระยะทาง';
-        btn.disabled = false;
-      }
-    }
-
-    async function calcFromPrevItem(dIdx, iIdx) {
-      if (iIdx === 0 && dIdx === 0) return alert('รายการแรกสุดไม่มีจุดเริ่มต้นก่อนหน้าครับ');
-      const currItem = state.days[dIdx].items[iIdx];
-      const prevItem = iIdx > 0
-        ? state.days[dIdx].items[iIdx - 1]
-        : state.days[dIdx - 1].items[state.days[dIdx - 1].items.length - 1];
-
-      const fromQuery = (prevItem.mapQuery || prevItem.title).trim();
-      const toQuery = (currItem.mapQuery || currItem.title).trim();
-
-      state.days[dIdx].items[iIdx].distInfo = 'กำลังคำนวณ...';
-      renderDays();
-
-      try {
-        const info = await fetchRouteDistance(fromQuery, toQuery);
-        state.days[dIdx].items[iIdx].distInfo = `${info.distKm} กม. (~${info.timeStr})`;
-        renderDays();
-        saveState();
-      } catch (err) {
-        state.days[dIdx].items[iIdx].distInfo = '';
-        renderDays();
-        alert(`คำนวณไม่สำเร็จ: ${err.message}\nลองกดปุ่ม 📍 เพื่อระบุชื่อสถานที่ภาษาอังกฤษ (เช่น Vang Vieng) แล้วกดคำนวณใหม่ครับ`);
-      }
-    }
-
-    function editMapQuery(dIdx, iIdx) {
-      const item = state.days[dIdx].items[iIdx];
-      const input = prompt('ระบุชื่อสถานที่สำหรับค้นหาพิกัดและคำนวณระยะทาง (แนะนำภาษาอังกฤษ เช่น Vang Vieng, Muang Feuang, Patuxay):', item.mapQuery || item.title);
-      if (input !== null) {
-        item.mapQuery = input.trim();
-        renderDays();
-        saveState();
-      }
-    }
 
     async function init() {
       if (sb) {
-        setStatus('กำลังโหลดข้อมูล...', 'yellow');
+        setSyncText('กำลังซิงก์...', false);
         const { data } = await sb.from('trip_plans').select('data').eq('id', TRIP_ID).single();
         if (data && data.data) {
           state = data.data;
         } else {
           await sb.from('trip_plans').upsert({ id: TRIP_ID, data: state });
         }
-        setStatus('● ซิงก์ออนไลน์กับเพื่อนแล้ว', 'green');
+        setSyncText('ซิงก์เรียลไทม์', true);
 
-        sb.channel('trip-sync')
+        sb.channel('sabai-realtime')
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trip_plans', filter: `id=eq.${TRIP_ID}` }, payload => {
             if (payload.new && payload.new.data) {
               state = payload.new.data;
-              renderAll();
-              setStatus('● อัปเดตล่าสุดจากเพื่อนในทริป', 'green');
+              renderApp();
+              setSyncText('อัปเดตล่าสุดแล้ว', true);
             }
           })
           .subscribe();
       } else {
-        const saved = localStorage.getItem('laos_trip_offline');
+        const saved = localStorage.getItem('sabai_mobile_offline');
         if (saved) state = JSON.parse(saved);
-        setStatus('● โหมดออฟไลน์ (ยังไม่ได้ใส่คีย์ Supabase)', 'yellow');
+        setSyncText('โหมดออฟไลน์', false);
       }
-      renderAll();
+      renderApp();
     }
 
-    function setStatus(text, color) {
-      const el = document.getElementById('syncStatus');
-      el.innerText = text;
-      el.className = color === 'green'
-        ? 'text-xs bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 px-2.5 py-0.5 rounded-full'
-        : 'text-xs bg-amber-500/20 text-amber-200 border border-amber-400/30 px-2.5 py-0.5 rounded-full';
+    function setSyncText(txt, ok) {
+      const el = document.getElementById('syncBadge');
+      el.innerText = txt;
+      el.className = ok ? 'text-emerald-600 font-medium' : 'text-amber-600 font-medium';
     }
 
     function saveState() {
-      renderBudget();
       clearTimeout(saveTimer);
-      setStatus('กำลังบันทึก...', 'yellow');
+      setSyncText('กำลังบันทึก...', false);
       saveTimer = setTimeout(async () => {
         if (sb) {
           await sb.from('trip_plans').upsert({ id: TRIP_ID, data: state, updated_at: new Date().toISOString() });
-          setStatus('● บันทึกขึ้น Cloud แล้ว', 'green');
+          setSyncText('ซิงก์เรียลไทม์', true);
         } else {
-          localStorage.setItem('laos_trip_offline', JSON.stringify(state));
-          setStatus('● บันทึกในเครื่องแล้ว', 'yellow');
+          localStorage.setItem('sabai_mobile_offline', JSON.stringify(state));
+          setSyncText('บันทึกในเครื่องแล้ว', false);
         }
-      }, 400);
+      }, 350);
     }
 
-    function renderAll() {
-      document.getElementById('tripTitle').innerText = state.title;
-      document.getElementById('tripSubtitle').innerText = state.subtitle;
-      document.getElementById('memberCount').value = state.members;
-      renderExpenses();
-      renderDays();
-      renderBudget();
+    function getActiveUser() {
+      return state.members.find(m => m.id === activeUserId) || state.members[0];
     }
 
-    function renderBudget() {
-      const m = Math.max(1, Number(state.members) || 1);
-      const personal = state.personalExpenses.reduce((s, x) => s + (Number(x.cost) || 0), 0);
-      const shared = state.sharedExpenses.reduce((s, x) => {
-        const c = Number(x.cost) || 0;
-        return s + (x.split ? (c / m) : c);
-      }, 0);
-      const activities = state.days.reduce((sumD, d) => sumD + d.items.reduce((sumI, i) => sumI + (Number(i.cost) || 0), 0), 0);
-      const totalPerPerson = Math.round(personal + shared + activities);
-      const totalGroup = totalPerPerson * m;
-
-      document.getElementById('sumPersonal').innerText = personal.toLocaleString() + ' ฿';
-      document.getElementById('sumShared').innerText = Math.round(shared).toLocaleString() + ' ฿';
-      document.getElementById('sumActivities').innerText = activities.toLocaleString() + ' ฿';
-      document.getElementById('sumTotalPerPerson').innerText = totalPerPerson.toLocaleString() + ' ฿';
-      document.getElementById('sumTotalGroup').innerText = `รวมทั้งทริป (${m} คน): ${totalGroup.toLocaleString()} ฿`;
+    function renderHeader() {
+      document.getElementById('headerTripTitle').innerText = state.tripName;
+      const u = getActiveUser();
+      document.getElementById('activeUserName').innerText = u.name;
+      const avEl = document.getElementById('activeUserAvatar');
+      if (u.avatarUrl) {
+        avEl.innerHTML = `<img src="${u.avatarUrl}" class="w-full h-full object-cover" />`;
+      } else {
+        avEl.innerText = u.emoji || u.name.charAt(0).toUpperCase();
+      }
     }
 
-    function renderExpenses() {
-      const pEl = document.getElementById('personalList');
-      pEl.innerHTML = state.personalExpenses.map((item, idx) => `
-        <div class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center justify-between gap-2 text-sm">
-          <div class="flex-1 min-w-0">
-            <input value="${item.name}" onchange="editExpense('personal', ${idx}, 'name', this.value)" class="font-semibold text-slate-800 w-full outline-none focus:bg-slate-100 rounded px-1" />
-            <input value="${item.note}" onchange="editExpense('personal', ${idx}, 'note', this.value)" class="text-xs text-slate-500 w-full outline-none focus:bg-slate-100 rounded px-1" />
-          </div>
-          <div class="flex items-center gap-1">
-            <input type="number" value="${item.cost}" onchange="editExpense('personal', ${idx}, 'cost', this.value)" class="w-20 text-right font-bold text-teal-700 border border-slate-200 rounded px-1.5 py-1 text-sm" />
-            <span class="text-xs text-slate-500">฿</span>
-            <button onclick="removeExpense('personal', ${idx})" class="no-print text-slate-400 hover:text-rose-500 px-1">✕</button>
-          </div>
+    function setTab(tab) {
+      currentTab = tab;
+      ['plan', 'expense', 'members', 'chat'].forEach(t => {
+        const btn = document.getElementById('nav-' + t);
+        if (t === tab) {
+          btn.className = 'flex flex-col items-center justify-center py-1 rounded-xl text-[#1e293b] font-bold bg-slate-100/80';
+        } else {
+          btn.className = 'flex flex-col items-center justify-center py-1 rounded-xl text-slate-400';
+        }
+      });
+      renderApp();
+    }
+
+    function renderApp() {
+      renderHeader();
+      const container = document.getElementById('appContent');
+      if (currentTab === 'plan') container.innerHTML = renderPlanTab();
+      else if (currentTab === 'expense') container.innerHTML = renderExpenseTab();
+      else if (currentTab === 'members') container.innerHTML = renderMembersTab();
+      else if (currentTab === 'chat') {
+        container.innerHTML = renderChatTab();
+        const box = document.getElementById('chatScrollBox');
+        if (box) box.scrollTop = box.scrollHeight;
+      }
+    }
+
+    // ==================== TAB 1: แพลนเที่ยว ====================
+    function renderPlanTab() {
+      const day = state.days[state.activeDayIdx] || state.days[0];
+      return `
+        <!-- Day Selector Pills -->
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          ${state.days.map((d, idx) => `
+            <button onclick="selectDay(${idx})"
+              class="px-4 py-2 rounded-2xl text-xs font-bold shrink-0 transition ${idx === state.activeDayIdx ? 'bg-[#334155] text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'}">
+              ${d.label}
+            </button>
+          `).join('')}
+          <button onclick="addNewDay()" class="px-4 py-2 rounded-2xl text-xs font-semibold bg-white text-slate-600 border border-slate-200 shrink-0">
+            + เพิ่มวัน
+          </button>
         </div>
-      `).join('');
 
-      const sEl = document.getElementById('sharedList');
-      sEl.innerHTML = state.sharedExpenses.map((item, idx) => `
-        <div class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center justify-between gap-2 text-sm">
-          <div class="flex-1 min-w-0">
-            <input value="${item.name}" onchange="editExpense('shared', ${idx}, 'name', this.value)" class="font-semibold text-slate-800 w-full outline-none focus:bg-slate-100 rounded px-1" />
-            <div class="flex items-center gap-2 mt-0.5">
-              <input value="${item.note}" onchange="editExpense('shared', ${idx}, 'note', this.value)" class="text-xs text-slate-500 flex-1 outline-none focus:bg-slate-100 rounded px-1" />
-              <label class="text-[11px] text-[#2E7D8B] flex items-center gap-1 cursor-pointer shrink-0">
-                <input type="checkbox" ${item.split ? 'checked' : ''} onchange="editExpense('shared', ${idx}, 'split', this.checked)" />
-                หาร ${state.members} คน
-              </label>
-            </div>
-          </div>
-          <div class="flex items-center gap-1">
-            <input type="number" value="${item.cost}" onchange="editExpense('shared', ${idx}, 'cost', this.value)" class="w-20 text-right font-bold text-teal-700 border border-slate-200 rounded px-1.5 py-1 text-sm" />
-            <span class="text-xs text-slate-500">฿</span>
-            <button onclick="removeExpense('shared', ${idx})" class="no-print text-slate-400 hover:text-rose-500 px-1">✕</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function renderDays() {
-      const container = document.getElementById('daysContainer');
-      container.innerHTML = state.days.map((day, dIdx) => `
-        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div class="bg-[#2E7D8B] text-white px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-            <div class="flex-1 min-w-[240px]">
-              <input value="${day.title}" onchange="editDay(${dIdx}, 'title', this.value)" class="font-bold text-base md:text-lg bg-transparent w-full outline-none focus:bg-white/10 rounded px-1" />
-            </div>
+        <!-- Day Header Card -->
+        <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm flex items-center justify-between gap-2">
+          <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
-              <input value="${day.stay}" onchange="editDay(${dIdx}, 'stay', this.value)" class="text-xs bg-white/15 text-cyan-50 px-2.5 py-1 rounded-full outline-none text-right" />
-              <button onclick="removeDay(${dIdx})" class="no-print text-xs bg-rose-500/80 hover:bg-rose-600 px-2 py-1 rounded">ลบวัน</button>
+              <h2 class="font-bold text-lg text-slate-800">${day.label}</h2>
+              <button onclick="editDayRoute()" class="text-slate-400 hover:text-slate-700 text-xs">✏️</button>
             </div>
+            <p class="text-xs text-slate-500 mt-0.5 truncate">${day.route}</p>
           </div>
+          <button onclick="openPlanModal(-1)" class="bg-[#334155] hover:bg-[#1e293b] text-white text-xs font-semibold px-4 py-2.5 rounded-2xl shrink-0 shadow-sm">
+            + เพิ่มแพลน
+          </button>
+        </div>
 
-          <div class="grid grid-cols-1 lg:grid-cols-12">
-            <!-- Left 8 cols: Schedule -->
-            <div class="lg:col-span-8 p-4 divide-y divide-slate-100">
-              ${day.items.map((item, iIdx) => {
-                const mapSearch = encodeURIComponent(item.mapQuery || item.title);
-                const gmapLink = `https://www.google.com/maps/search/?api=1&query=${mapSearch}`;
-                return `
-                <div class="py-2.5 flex flex-col gap-1.5">
-                  ${(dIdx > 0 || iIdx > 0) ? `
-                    <div class="flex items-center gap-2 pl-24">
-                      ${item.distInfo ? `
-                        <span class="text-[11px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
-                          🚗 เดินทางจากจุดก่อนหน้า: ${item.distInfo}
-                        </span>
-                      ` : ''}
-                      <button onclick="calcFromPrevItem(${dIdx}, ${iIdx})" class="no-print text-[11px] text-[#2E7D8B] hover:underline">
-                        ${item.distInfo ? '↻ คำนวณใหม่' : '+ คำนวณระยะทางจากจุดก่อนหน้า'}
-                      </button>
-                    </div>
-                  ` : ''}
-
-                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div class="flex items-start gap-2.5 flex-1">
-                      <input value="${item.time}" onchange="editItem(${dIdx}, ${iIdx}, 'time', this.value)"
-                        class="w-24 shrink-0 text-xs font-bold text-[#2E7D8B] bg-[#F2F7F8] px-2 py-1 rounded text-center outline-none focus:ring-1 focus:ring-[#2E7D8B]" />
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-1.5">
-                          <input value="${item.title}" onchange="editItem(${dIdx}, ${iIdx}, 'title', this.value)"
-                            class="font-semibold text-sm text-slate-800 flex-1 outline-none focus:bg-slate-100 rounded px-1" />
-                          <button onclick="editMapQuery(${dIdx}, ${iIdx})" title="ระบุชื่อพิกัดสำหรับคำนวณระยะทาง (${item.mapQuery || 'ยังไม่ระบุ'})" class="no-print text-xs px-1.5 py-0.5 rounded bg-slate-100 hover:bg-cyan-100 text-slate-600">
-                            📍
-                          </button>
-                          <a href="${gmapLink}" target="_blank" title="เปิดดูใน Google Maps" class="no-print text-[11px] text-cyan-700 hover:underline shrink-0">
-                            Maps ↗
-                          </a>
-                        </div>
-                        <input value="${item.desc}" onchange="editItem(${dIdx}, ${iIdx}, 'desc', this.value)" placeholder="เพิ่มรายละเอียด..."
-                          class="text-xs text-slate-500 w-full outline-none focus:bg-slate-100 rounded px-1 mt-0.5" />
-                      </div>
-                    </div>
-                    <div class="flex items-center justify-end gap-1.5 pl-24 sm:pl-0">
-                      <input type="number" value="${item.cost}" onchange="editItem(${dIdx}, ${iIdx}, 'cost', this.value)"
-                        class="w-20 text-right text-sm font-semibold text-teal-700 border border-slate-200 rounded px-2 py-0.5 outline-none focus:border-[#2E7D8B]" />
-                      <span class="text-xs text-slate-400">฿</span>
-                      <button onclick="moveItem(${dIdx}, ${iIdx}, -1)" title="เลื่อนขึ้น" class="no-print text-slate-400 hover:text-slate-700 px-1 text-xs">▲</button>
-                      <button onclick="moveItem(${dIdx}, ${iIdx}, 1)" title="เลื่อนลง" class="no-print text-slate-400 hover:text-slate-700 px-1 text-xs">▼</button>
-                      <button onclick="removeItem(${dIdx}, ${iIdx})" title="ลบ" class="no-print text-slate-300 hover:text-rose-500 px-1 text-xs">✕</button>
-                    </div>
+        <!-- Timeline Cards -->
+        <div class="space-y-4">
+          ${day.items.map((item, idx) => {
+            const gmapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.mapQuery || item.title)}`;
+            const costFormatted = Number(item.cost || 0).toLocaleString();
+            const unitLabel = item.currency === 'LAK' ? 'LAK' : 'THB';
+            return `
+              <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+                <!-- Card Top Row -->
+                <div class="flex items-center justify-between text-xs text-slate-500">
+                  <div class="flex items-center gap-2">
+                    <span class="font-semibold text-slate-700">🕒 ${item.time}</span>
+                    <span>•</span>
+                    <span>${item.category}</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button onclick="openPlanModal(${idx})" class="text-slate-400 hover:text-slate-700 p-1">✏️</button>
+                    <button onclick="deletePlanItem(${idx})" class="text-slate-400 hover:text-rose-500 p-1">🗑️</button>
                   </div>
                 </div>
-              `}).join('')}
 
-              <div class="pt-3 no-print">
-                <button onclick="addItem(${dIdx})" class="text-xs font-semibold text-[#2E7D8B] hover:text-[#1E4D5C] flex items-center gap-1">
-                  + เพิ่มสถานที่ / กิจกรรมในวันนี้
-                </button>
-              </div>
-            </div>
+                <!-- Activity Title -->
+                <h3 class="font-bold text-base text-slate-800 leading-snug">${item.title}</h3>
 
-            <!-- Right 4 cols: Dynamic Photo Slots -->
-            <div class="lg:col-span-4 bg-slate-50 border-t lg:border-t-0 lg:border-l border-slate-200 p-4 flex flex-col justify-between gap-4">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-slate-500">รูปภาพความทรงจำ (${day.photos.length} รูป)</span>
-                <button onclick="addPhotoSlot(${dIdx})" class="no-print text-xs bg-[#2E7D8B] hover:bg-[#1E4D5C] text-white px-2.5 py-1 rounded-lg transition">
-                  + เพิ่มช่องใส่รูป
-                </button>
-              </div>
-
-              <div class="space-y-3 flex-1">
-                ${day.photos.map((photo, pIdx) => `
-                  <div class="bg-white border-2 border-dashed border-slate-300 rounded-xl p-2.5 text-center relative group">
-                    <button onclick="removePhotoSlot(${dIdx}, ${pIdx})" title="ลบช่องรูปนี้"
-                      class="no-print absolute -top-2 -right-2 bg-rose-500 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center shadow hover:bg-rose-600 z-10">
-                      ✕
-                    </button>
-                    ${photo.url ? `
-                      <img src="${photo.url}" class="w-full h-44 object-cover rounded-lg mb-2" />
-                      <button onclick="clearPhoto(${dIdx}, ${pIdx})" class="no-print absolute top-4 right-4 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full hover:bg-rose-600">เปลี่ยนรูป</button>
-                    ` : `
-                      <label class="cursor-pointer flex flex-col items-center justify-center h-32 text-slate-400 hover:text-[#2E7D8B] transition">
-                        <span class="text-2xl mb-1">📷</span>
-                        <span class="text-xs font-medium">คลิกเพื่อเลือกรูปที่ ${pIdx + 1}</span>
-                        <input type="file" accept="image/*" class="hidden" onchange="uploadPhoto(${dIdx}, ${pIdx}, this)" />
-                      </label>
-                    `}
-                    <input value="${photo.caption}" onchange="editPhotoCaption(${dIdx}, ${pIdx}, this.value)" placeholder="ใส่คำบรรยายใต้ภาพ..."
-                      class="text-xs text-center text-slate-600 w-full outline-none focus:bg-slate-100 rounded py-0.5 mt-1" />
+                <!-- Optional Photo -->
+                ${item.photo ? `
+                  <div class="rounded-2xl overflow-hidden border border-slate-100">
+                    <img src="${item.photo}" class="w-full h-44 object-cover" />
                   </div>
-                `).join('')}
-              </div>
+                ` : ''}
 
-              <button onclick="addPhotoSlot(${dIdx})" class="no-print w-full py-2 border border-dashed border-[#2E7D8B] text-[#2E7D8B] hover:bg-[#F2F7F8] rounded-xl text-xs font-semibold transition">
-                + เพิ่มช่องใส่รูปภาพอีก
-              </button>
+                <!-- Cost & Payer Box -->
+                <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100 space-y-2 text-xs">
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-500">💰 ค่าใช้จ่าย</span>
+                    <span class="font-bold text-sm text-slate-800">${costFormatted} ${unitLabel}</span>
+                    <span class="text-[11px] px-2 py-0.5 rounded-full ${item.splitType === 'shared' ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700'}">
+                      ${item.splitType === 'shared' ? 'หารร่วมกัน' : 'จ่ายต่อคน'}
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between pt-1.5 border-t border-slate-200/60">
+                    <span class="text-slate-500">สำรองจ่าย:</span>
+                    <span class="font-semibold text-slate-700 flex items-center gap-1.5">
+                      <span class="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] flex items-center justify-center">${(item.payer || 'K').charAt(0)}</span>
+                      ${item.payer || 'Kanyarat'}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Note Box -->
+                ${item.note ? `
+                  <div class="bg-slate-50/70 rounded-xl px-3 py-2 text-xs text-slate-600 border border-slate-100">
+                    💬 ${item.note}
+                  </div>
+                ` : ''}
+
+                <!-- Action Pill: Google Maps -->
+                <div class="pt-0.5 flex items-center justify-between">
+                  <a href="${gmapUrl}" target="_blank" class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-full transition">
+                    <span class="text-rose-500">📍</span> เปิด Google Maps
+                  </a>
+                  <label class="text-[11px] text-slate-400 hover:text-slate-600 cursor-pointer">
+                    📷 ${item.photo ? 'เปลี่ยนรูป' : '+ แนบรูป'}
+                    <input type="file" accept="image/*" class="hidden" onchange="quickAttachPhoto(${idx}, this)" />
+                  </label>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    // ==================== TAB 2: ค่าใช้จ่าย ====================
+    function renderExpenseTab() {
+      const rate = Number(state.exchangeRate) || 650;
+      const memberCount = Math.max(1, state.members.length);
+
+      let totalThb = 0;
+      let perPersonShareThb = 0;
+      const catTotals = {};
+
+      state.days.forEach(d => {
+        d.items.forEach(item => {
+          const raw = Number(item.cost) || 0;
+          const thb = item.currency === 'LAK' ? (raw / rate) : raw;
+          totalThb += thb;
+          perPersonShareThb += (item.splitType === 'shared') ? (thb / memberCount) : thb;
+          catTotals[item.category] = (catTotals[item.category] || 0) + thb;
+        });
+      });
+
+      const totalLak = Math.round(totalThb * rate);
+      const fundTotal = state.centralFund.reduce((s, f) => s + (Number(f.amount) || 0), 0);
+      const fundRemaining = fundTotal - totalThb;
+
+      const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+
+      return `
+        <!-- Dark Navy Summary Card -->
+        <div class="bg-[#334155] text-white rounded-3xl p-5 shadow-md space-y-4">
+          <div>
+            <div class="text-xs text-slate-300">ยอดใช้จ่ายรวมทั้งทริป</div>
+            <div class="text-3xl font-bold mt-1">฿${Math.round(totalThb).toLocaleString()}</div>
+            <div class="text-xs text-slate-300 mt-0.5">≈ ${totalLak.toLocaleString()} กีบ (LAK)  |  เฉลี่ย ฿${Math.round(perPersonShareThb).toLocaleString()}/คน</div>
+          </div>
+
+          <div class="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+            <span class="text-slate-300">อัตราแลกเปลี่ยน: 1 บาท =</span>
+            <div class="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-full">
+              <input type="number" value="${rate}" onchange="updateRate(this.value)" class="w-14 bg-transparent text-right font-bold text-white outline-none" />
+              <span>กีบ</span>
             </div>
           </div>
-        </section>
-      `).join('');
+        </div>
+
+        <!-- Central Fund Card -->
+        <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <h3 class="font-bold text-sm text-slate-800">🐷 เงินกองกลางทริป (Central Fund)</h3>
+              <p class="text-[11px] text-slate-400">บันทึกยอดลงขันกองกลางของกลุ่ม</p>
+            </div>
+            <button onclick="addCentralFund()" class="bg-[#334155] text-white text-xs font-semibold px-3.5 py-2 rounded-2xl shrink-0">
+              + เพิ่มเงินกองกลาง
+            </button>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+              <div class="text-[10px] text-slate-400">ยอดตั้งต้นรวม</div>
+              <div class="font-bold text-sm text-slate-800 mt-0.5">฿${Math.round(fundTotal).toLocaleString()}</div>
+            </div>
+            <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+              <div class="text-[10px] text-slate-400">ใช้จ่ายไปแล้ว</div>
+              <div class="font-bold text-sm text-amber-600 mt-0.5">฿${Math.round(totalThb).toLocaleString()}</div>
+            </div>
+            <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+              <div class="text-[10px] text-slate-400">คงเหลือปัจจุบัน</div>
+              <div class="font-bold text-sm ${fundRemaining >= 0 ? 'text-emerald-600' : 'text-rose-600'} mt-0.5">฿${Math.round(fundRemaining).toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Breakdown -->
+        <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+          <h3 class="font-bold text-sm text-slate-800">📊 สรุปค่าใช้จ่ายแยกตามหมวดหมู่</h3>
+          <div class="space-y-3">
+            ${sortedCats.map(([cat, val]) => {
+              const pct = totalThb > 0 ? Math.round((val / totalThb) * 100) : 0;
+              return `
+                <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-1.5">
+                  <div class="flex items-center justify-between text-xs font-semibold">
+                    <span>${cat} <span class="text-slate-400 font-normal">(${pct}%)</span></span>
+                    <span class="text-slate-800">฿${Math.round(val).toLocaleString()}</span>
+                  </div>
+                  <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-amber-500 rounded-full" style="width: ${pct}%"></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
     }
 
-    // Actions
-    function updateMeta(key, val) { state[key] = val; saveState(); }
-    function updateMembers(val) { state.members = Math.max(1, Number(val) || 1); renderExpenses(); saveState(); }
-    function editExpense(type, idx, key, val) {
-      const list = type === 'personal' ? state.personalExpenses : state.sharedExpenses;
-      list[idx][key] = key === 'cost' ? Number(val) : val;
-      saveState();
+    // ==================== TAB 3: เพื่อนทริป & โน้ต ====================
+    function renderMembersTab() {
+      return `
+        <!-- Members Card -->
+        <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="font-bold text-base text-slate-800">สมาชิกผู้ร่วมทริป</h2>
+              <p class="text-[11px] text-slate-400">จำกัดสมาชิกแต่ละทริปไม่เกิน 10 คน</p>
+            </div>
+            <span class="text-xs font-bold text-slate-700">${state.members.length}/10 คน</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <select id="newMemberEmoji" class="border border-slate-200 rounded-2xl px-2.5 py-2.5 text-base bg-slate-50 outline-none">
+              <option value="🐰">🐰</option>
+              <option value="🐻">🐻</option>
+              <option value="🦊">🦊</option>
+              <option value="🐼">🐼</option>
+              <option value="🐨">🐨</option>
+              <option value="🐯">🐯</option>
+            </select>
+            <input id="newMemberName" type="text" placeholder="ชื่อเล่นเพื่อน..." class="flex-1 border border-slate-200 rounded-2xl px-3 py-2.5 text-xs outline-none focus:border-[#334155]" />
+            <button onclick="addMember()" class="bg-[#334155] text-white text-xs font-semibold px-3.5 py-2.5 rounded-2xl shrink-0">
+              + เพิ่มสมาชิก
+            </button>
+          </div>
+
+          <div class="space-y-2 pt-1">
+            ${state.members.map((m, idx) => `
+              <div class="flex items-center justify-between p-2.5 rounded-2xl border border-slate-100 bg-slate-50/70">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <label class="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-base shrink-0 cursor-pointer relative overflow-hidden">
+                    ${m.avatarUrl ? `<img src="${m.avatarUrl}" class="w-full h-full object-cover" />` : (m.emoji || m.name.charAt(0))}
+                    <input type="file" accept="image/*" class="hidden" onchange="uploadMemberAvatar(${idx}, this)" />
+                  </label>
+                  <div class="min-w-0">
+                    <div class="font-bold text-xs text-slate-800 truncate flex items-center gap-1">
+                      ${m.name}
+                      ${idx === 0 ? '<span class="text-[10px] text-amber-600 font-medium">👑 เจ้าของทริป</span>' : ''}
+                    </div>
+                    <div class="text-[10px] text-slate-400">แตะที่รูปเพื่อเปลี่ยนรูปโปรไฟล์</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button onclick="selectAsMe('${m.id}')" class="text-[11px] px-2.5 py-1 rounded-xl border ${m.id === activeUserId ? 'bg-[#334155] text-white border-[#334155]' : 'bg-white text-slate-600 border-slate-200'}">
+                    ${m.id === activeUserId ? 'ฉันเอง' : 'เลือกใช้ชื่อนี้'}
+                  </button>
+                  ${idx > 0 ? `<button onclick="removeMember(${idx})" class="text-slate-400 hover:text-rose-500 px-1.5 text-xs">🗑️</button>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Shared Trip Note -->
+        <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-base text-slate-800">📝 Note & สิ่งที่ต้องเตรียม</h3>
+            <button onclick="saveNoteText()" class="bg-[#334155] text-white text-xs font-semibold px-4 py-2 rounded-2xl">
+              บันทึกโน้ต
+            </button>
+          </div>
+          <textarea id="tripNoteInput" rows="7" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-xs leading-relaxed text-slate-700 outline-none focus:border-[#334155]">${state.notes}</textarea>
+        </div>
+      `;
     }
-    function addExpense(type) {
-      const list = type === 'personal' ? state.personalExpenses : state.sharedExpenses;
-      list.push({ id: Date.now().toString(), name: 'รายการใหม่', note: 'รายละเอียด', cost: 0, split: true });
-      renderExpenses(); saveState();
+
+    // ==================== TAB 4: แชทกลุ่ม ====================
+    function renderChatTab() {
+      const me = getActiveUser();
+      return `
+        <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <span class="text-xl">💬</span>
+            <div>
+              <h2 class="font-bold text-sm text-slate-800">แชทกลุ่มทริปลาว</h2>
+              <p class="text-[11px] text-slate-400">สมาชิก ${state.members.length}/10 คน</p>
+            </div>
+          </div>
+          <span class="text-[11px] text-emerald-600 font-medium">☁️ ซิงก์เรียลไทม์</span>
+        </div>
+
+        <div id="chatScrollBox" class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm h-[52vh] overflow-y-auto space-y-3">
+          ${state.messages.map(msg => {
+            const sender = state.members.find(m => m.id === msg.senderId) || state.members[0];
+            const isMe = sender.id === me.id;
+            return `
+              <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+                <span class="text-[10px] text-slate-400 mb-1 px-1">${sender.name} • ${msg.time}</span>
+                <div class="flex items-end gap-2 max-w-[82%] ${isMe ? 'flex-row-reverse' : ''}">
+                  <div class="w-7 h-7 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center shrink-0 overflow-hidden">
+                    ${sender.avatarUrl ? `<img src="${sender.avatarUrl}" class="w-full h-full object-cover" />` : (sender.emoji || sender.name.charAt(0))}
+                  </div>
+                  <div class="px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed ${isMe ? 'bg-[#334155] text-white rounded-br-sm' : 'bg-slate-100 text-slate-800 rounded-bl-sm'}">
+                    ${msg.text}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="flex items-center gap-2">
+          <div class="bg-white border border-slate-200 rounded-2xl px-2.5 py-2 text-xs font-semibold text-slate-700 shrink-0">
+            ${me.emoji || '🐰'} ${me.name.slice(0, 7)}
+          </div>
+          <input id="chatInput" type="text" placeholder="พิมพ์ข้อความคุยกันในทริป..." onkeypress="if(event.key==='Enter') sendChat()"
+            class="flex-1 bg-white border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs outline-none focus:border-[#334155]" />
+          <button onclick="sendChat()" class="bg-[#334155] text-white w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
+            ➤
+          </button>
+        </div>
+      `;
     }
-    function removeExpense(type, idx) {
-      const list = type === 'personal' ? state.personalExpenses : state.sharedExpenses;
-      list.splice(idx, 1);
-      renderExpenses(); saveState();
-    }
-    function editDay(dIdx, key, val) { state.days[dIdx][key] = val; saveState(); }
-    function addDay() {
+
+    // ==================== ACTIONS ====================
+    function selectDay(idx) { state.activeDayIdx = idx; renderApp(); }
+    function addNewDay() {
       const n = state.days.length + 1;
-      state.days.push({
-        id: 'day' + Date.now(),
-        title: `DAY ${n} : ระบุเส้นทางเดินทาง`,
-        stay: 'ระบุที่พัก',
-        items: [{ id: Date.now().toString(), time: '09:00', title: 'กิจกรรมแรก', mapQuery: '', desc: 'รายละเอียด', cost: 0, distInfo: '' }],
-        photos: [{ caption: 'รูปที่ 1', url: '' }, { caption: 'รูปที่ 2', url: '' }]
-      });
-      renderDays(); saveState();
+      state.days.push({ id: 'd' + Date.now(), label: `Day ${n}`, route: 'ระบุเส้นทางเดินทาง', items: [] });
+      state.activeDayIdx = state.days.length - 1;
+      renderApp(); saveState();
     }
-    function removeDay(dIdx) {
-      if (confirm('ต้องการลบวันเดินทางนี้ใช่หรือไม่?')) {
-        state.days.splice(dIdx, 1);
-        renderDays(); saveState();
-      }
+    function editDayRoute() {
+      const d = state.days[state.activeDayIdx];
+      const r = prompt('แก้ไขเส้นทางของวันนี้:', d.route);
+      if (r !== null) { d.route = r; renderApp(); saveState(); }
     }
-    function editItem(dIdx, iIdx, key, val) {
-      state.days[dIdx].items[iIdx][key] = key === 'cost' ? Number(val) : val;
-      saveState();
-    }
-    function addItem(dIdx) {
-      state.days[dIdx].items.push({ id: Date.now().toString(), time: 'เวลา', title: 'ชื่อสถานที่ / กิจกรรมใหม่', mapQuery: '', desc: '', cost: 0, distInfo: '' });
-      renderDays(); saveState();
-    }
-    function removeItem(dIdx, iIdx) {
-      state.days[dIdx].items.splice(iIdx, 1);
-      renderDays(); saveState();
-    }
-    function moveItem(dIdx, iIdx, dir) {
-      const items = state.days[dIdx].items;
-      const target = iIdx + dir;
-      if (target < 0 || target >= items.length) return;
-      [items[iIdx], items[target]] = [items[target], items[iIdx]];
-      renderDays(); saveState();
+    function editTripName() {
+      const n = prompt('แก้ไขชื่อทริป:', state.tripName);
+      if (n !== null && n.trim()) { state.tripName = n.trim(); renderApp(); saveState(); }
     }
 
-    // Photo Slot Management (เพิ่ม/ลบช่องรูปได้ไม่จำกัด)
-    function addPhotoSlot(dIdx) {
-      const nextNum = state.days[dIdx].photos.length + 1;
-      state.days[dIdx].photos.push({ caption: `รูปที่ ${nextNum}`, url: '' });
-      renderDays(); saveState();
+    function openPlanModal(idx) {
+      document.getElementById('editItemIdx').value = idx;
+      const payerSel = document.getElementById('mPayer');
+      payerSel.innerHTML = state.members.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+
+      if (idx >= 0) {
+        const item = state.days[state.activeDayIdx].items[idx];
+        document.getElementById('modalTitle').innerText = '✏️ แก้ไขแพลนเที่ยว';
+        document.getElementById('mTime').value = item.time;
+        document.getElementById('mCategory').value = item.category;
+        document.getElementById('mTitle').value = item.title;
+        document.getElementById('mCost').value = item.cost;
+        document.getElementById('mCurrency').value = item.currency;
+        document.getElementById('mSplitType').value = item.splitType;
+        document.getElementById('mPayer').value = item.payer || state.members[0].name;
+        document.getElementById('mMapQuery').value = item.mapQuery || '';
+        document.getElementById('mNote').value = item.note || '';
+        tempModalPhoto = item.photo || '';
+      } else {
+        document.getElementById('modalTitle').innerText = '+ เพิ่มแพลนเที่ยว';
+        document.getElementById('mTime').value = '10:00 - 11:30';
+        document.getElementById('mCategory').value = '🏞️ ที่เที่ยว';
+        document.getElementById('mTitle').value = '';
+        document.getElementById('mCost').value = '';
+        document.getElementById('mCurrency').value = 'THB';
+        document.getElementById('mSplitType').value = 'per_person';
+        document.getElementById('mPayer').value = getActiveUser().name;
+        document.getElementById('mMapQuery').value = '';
+        document.getElementById('mNote').value = '';
+        tempModalPhoto = '';
+      }
+      updateModalPreview();
+      document.getElementById('planModal').classList.remove('hidden');
     }
-    function removePhotoSlot(dIdx, pIdx) {
-      if (confirm('ต้องการลบช่องรูปภาพนี้ใช่หรือไม่?')) {
-        state.days[dIdx].photos.splice(pIdx, 1);
-        renderDays(); saveState();
+
+    function closePlanModal() { document.getElementById('planModal').classList.add('hidden'); }
+
+    function handleModalPhoto(input) {
+      compressImage(input.files[0], url => { tempModalPhoto = url; updateModalPreview(); });
+    }
+    function clearModalPhoto() { tempModalPhoto = ''; updateModalPreview(); }
+    function updateModalPreview() {
+      const img = document.getElementById('mPhotoPreview');
+      if (tempModalPhoto) { img.src = tempModalPhoto; img.classList.remove('hidden'); }
+      else { img.classList.add('hidden'); }
+    }
+
+    function savePlanItem() {
+      const idx = Number(document.getElementById('editItemIdx').value);
+      const title = document.getElementById('mTitle').value.trim();
+      if (!title) return alert('กรุณากรอกชื่อสถานที่หรือกิจกรรมครับ');
+
+      const obj = {
+        id: 'i' + Date.now(),
+        time: document.getElementById('mTime').value.trim() || 'เวลา',
+        category: document.getElementById('mCategory').value,
+        title,
+        cost: Number(document.getElementById('mCost').value) || 0,
+        currency: document.getElementById('mCurrency').value,
+        splitType: document.getElementById('mSplitType').value,
+        payer: document.getElementById('mPayer').value,
+        mapQuery: document.getElementById('mMapQuery').value.trim() || title,
+        note: document.getElementById('mNote').value.trim(),
+        photo: tempModalPhoto
+      };
+
+      if (idx >= 0) state.days[state.activeDayIdx].items[idx] = obj;
+      else state.days[state.activeDayIdx].items.push(obj);
+
+      closePlanModal();
+      renderApp(); saveState();
+    }
+
+    function deletePlanItem(idx) {
+      if (confirm('ลบรายการนี้ใช่หรือไม่?')) {
+        state.days[state.activeDayIdx].items.splice(idx, 1);
+        renderApp(); saveState();
       }
     }
-    function uploadPhoto(dIdx, pIdx, input) {
-      const file = input.files[0];
+
+    function quickAttachPhoto(idx, input) {
+      compressImage(input.files[0], url => {
+        state.days[state.activeDayIdx].items[idx].photo = url;
+        renderApp(); saveState();
+      });
+    }
+
+    function updateRate(val) { state.exchangeRate = Math.max(1, Number(val) || 650); renderApp(); saveState(); }
+    function addCentralFund() {
+      const amt = prompt('ระบุจำนวนเงินที่ลงกองกลางเพิ่ม (บาท):', '1000');
+      if (amt && !isNaN(amt)) {
+        state.centralFund.push({ id: 'cf' + Date.now(), by: getActiveUser().name, amount: Number(amt), note: 'เพิ่มเงินกองกลาง' });
+        renderApp(); saveState();
+      }
+    }
+
+    function addMember() {
+      if (state.members.length >= 10) return alert('ครบจำนวนสูงสุด 10 คนแล้วครับ');
+      const name = document.getElementById('newMemberName').value.trim();
+      const emoji = document.getElementById('newMemberEmoji').value;
+      if (!name) return alert('กรุณาพิมพ์ชื่อเล่นเพื่อนก่อนครับ');
+      state.members.push({ id: 'm' + Date.now(), name, role: 'สมาชิก', emoji, avatarUrl: '' });
+      renderApp(); saveState();
+    }
+    function removeMember(idx) {
+      if (confirm('ลบสมาชิกคนนี้ออกจากทริปใช่หรือไม่?')) {
+        state.members.splice(idx, 1);
+        renderApp(); saveState();
+      }
+    }
+    function selectAsMe(id) {
+      activeUserId = id;
+      localStorage.setItem('sabai_active_user', id);
+      renderApp();
+    }
+    function switchUserPrompt() { setTab('members'); }
+    function uploadMemberAvatar(idx, input) {
+      compressImage(input.files[0], url => { state.members[idx].avatarUrl = url; renderApp(); saveState(); }, 250);
+    }
+    function saveNoteText() {
+      state.notes = document.getElementById('tripNoteInput').value;
+      saveState();
+      alert('บันทึกโน้ตเรียบร้อยแล้วครับ');
+    }
+
+    function sendChat() {
+      const inp = document.getElementById('chatInput');
+      const text = inp.value.trim();
+      if (!text) return;
+      const now = new Date();
+      const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+      state.messages.push({ id: 'msg' + Date.now(), senderId: getActiveUser().id, text, time });
+      inp.value = '';
+      renderApp(); saveState();
+    }
+
+    function copyShareLink() {
+      navigator.clipboard.writeText(window.location.href);
+      alert('คัดลอกลิงก์เว็บเรียบร้อยแล้ว! ส่งเข้ากลุ่มไลน์ให้เพื่อนเปิดใช้งานร่วมกันได้เลยครับ');
+    }
+
+    function openToolModal() { document.getElementById('toolModal').classList.remove('hidden'); }
+    function closeToolModal() { document.getElementById('toolModal').classList.add('hidden'); }
+
+    async function calcDistanceTool() {
+      const from = document.getElementById('tFrom').value.trim();
+      const to = document.getElementById('tTo').value.trim();
+      const btn = document.getElementById('tCalcBtn');
+      const box = document.getElementById('tCalcResult');
+      if (!from || !to) return alert('กรุณากรอกจุดเริ่มต้นและจุดหมายครับ');
+
+      btn.innerText = 'กำลังคำนวณ...';
+      try {
+        const g1 = await (await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(from)}`)).json();
+        const g2 = await (await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(to)}`)).json();
+        if (!g1[0] || !g2[0]) throw new Error('หาพิกัดไม่พบ ลองพิมพ์เป็นภาษาอังกฤษ เช่น Vang Vieng');
+        const r = await (await fetch(`https://router.project-osrm.org/route/v1/driving/${g1[0].lon},${g1[0].lat};${g2[0].lon},${g2[0].lat}?overview=false`)).json();
+        const km = (r.routes[0].distance / 1000).toFixed(1);
+        const mins = Math.round(r.routes[0].duration / 60);
+        const h = Math.floor(mins / 60), m = mins % 60;
+        box.classList.remove('hidden');
+        box.innerHTML = `🚗 ระยะทาง <strong>${km} กม.</strong> (ใช้เวลาขับรถประมาณ <strong>${h > 0 ? h + ' ชม. ' : ''}${m} นาที</strong>)`;
+      } catch (e) {
+        alert(e.message);
+      } finally {
+        btn.innerText = 'คำนวณระยะทาง & เวลาขับรถ';
+      }
+    }
+
+    function resetAllData() {
+      if (confirm('ต้องการล้างข้อมูลที่แก้ไขทั้งหมดและกลับเป็นแพลนเริ่มต้นใช่หรือไม่?')) {
+        state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+        closeToolModal(); renderApp(); saveState();
+      }
+    }
+
+    function compressImage(file, cb, maxW = 700) {
       if (!file) return;
       const reader = new FileReader();
       reader.onload = e => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const maxW = 800;
           const scale = Math.min(1, maxW / img.width);
           canvas.width = img.width * scale;
           canvas.height = img.height * scale;
           canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-          state.days[dIdx].photos[pIdx].url = canvas.toDataURL('image/jpeg', 0.72);
-          renderDays(); saveState();
+          cb(canvas.toDataURL('image/jpeg', 0.72));
         };
         img.src = e.target.result;
       };
       reader.readAsDataURL(file);
-    }
-    function clearPhoto(dIdx, pIdx) { state.days[dIdx].photos[pIdx].url = ''; renderDays(); saveState(); }
-    function editPhotoCaption(dIdx, pIdx, val) { state.days[dIdx].photos[pIdx].caption = val; saveState(); }
-    function resetToDefault() {
-      if (confirm('ต้องการรีเซ็ตข้อมูลทั้งหมดกลับเป็นแพลนเริ่มต้นใช่หรือไม่?')) {
-        state = JSON.parse(JSON.stringify(DEFAULT_STATE));
-        renderAll(); saveState();
-      }
     }
 
     init();

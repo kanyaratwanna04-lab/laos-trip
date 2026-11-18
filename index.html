@@ -190,11 +190,11 @@
         </div>
 
         <div>
-          <label class="text-[11px] text-slate-500">ผู้จ่ายเงิน (สำรองจ่าย):</label>
-          <select id="mPayerId" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none bg-white"></select>
+          <label class="text-[11px] text-slate-500">แหล่งเงินที่จ่าย (หักกองกลาง หรือ สำรองจ่าย):</label>
+          <select id="mPayerId" onchange="onPayerChange()" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none bg-white font-medium"></select>
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
+        <div id="splitModeRow" class="grid grid-cols-2 gap-2">
           <button type="button" id="btnSplitShared" onclick="setSplitMode('shared')"
             class="py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 bg-white border-[#334155] text-slate-800">
             <span>◉</span> หารกับเพื่อนทุกคน
@@ -222,6 +222,32 @@
         <button type="button" onclick="savePlanItem()" class="col-span-8 bg-[#334155] hover:bg-[#1e293b] text-white font-semibold py-3 rounded-2xl text-xs shadow">
           บันทึกแพลนเที่ยว
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: เพิ่มเงินกองกลาง -->
+  <div id="fundModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-5 space-y-3.5">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-base text-slate-800">🐷 ลงขันเพิ่มเงินกองกลางทริป</h3>
+        <button onclick="closeFundModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500">✕</button>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-slate-600">คนที่ลงเงินกองกลาง</label>
+        <select id="fMemberId" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2.5 text-xs outline-none bg-white"></select>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-slate-600">จำนวนเงิน (บาท THB)</label>
+        <input id="fAmount" type="number" placeholder="เช่น 2000" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#334155]" />
+      </div>
+      <div>
+        <label class="text-xs font-medium text-slate-600">หมายเหตุ (ถ้ามี)</label>
+        <input id="fNote" type="text" placeholder="เช่น ลงขันกองกลางรอบแรก" class="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none" />
+      </div>
+      <div class="grid grid-cols-12 gap-2 pt-1">
+        <button type="button" onclick="closeFundModal()" class="col-span-4 bg-slate-100 text-slate-700 font-semibold py-2.5 rounded-2xl text-xs">ยกเลิก</button>
+        <button type="button" onclick="saveCentralFund()" class="col-span-8 bg-[#334155] text-white font-semibold py-2.5 rounded-2xl text-xs">บันทึกเงินกองกลาง</button>
       </div>
     </div>
   </div>
@@ -259,7 +285,7 @@
     // =========================================================================
     const SUPABASE_URL = 'https://dpnjxiubushiltkhruip.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_shO55VWbtMIy-rcQUy0FGQ_uXvNRhKj';
-    const TRIP_ID = 'laos-3d2n-mobile-v3';
+    const TRIP_ID = 'laos-3d2n-mobile-v4';
 
     const isConfigured = SUPABASE_URL.startsWith('http');
     const sb = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
@@ -342,9 +368,7 @@
     }
 
     async function enableBrowserNotifications() {
-      if (!('Notification' in window)) {
-        return alert('เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือนครับ');
-      }
+      if (!('Notification' in window)) return alert('เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือนครับ');
       const perm = await Notification.requestPermission();
       if (perm === 'granted') {
         playPingSound();
@@ -367,11 +391,7 @@
           const sender = (newState.members || []).find(m => m.id === lastMsg.senderId);
           const senderName = sender ? sender.name : 'เพื่อนร่วมทริป';
           playPingSound();
-
-          if (currentTab !== 'chat') {
-            document.getElementById('chatUnreadDot').classList.remove('hidden');
-          }
-
+          if (currentTab !== 'chat') document.getElementById('chatUnreadDot').classList.remove('hidden');
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification(`${senderName} ส่งข้อความในทริปลาว`, {
               body: lastMsg.text,
@@ -393,7 +413,7 @@
         }
         setSyncText('ซิงก์เรียลไทม์', true);
 
-        sb.channel('sabai-realtime-v3')
+        sb.channel('sabai-realtime-v4')
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trip_plans', filter: `id=eq.${TRIP_ID}` }, payload => {
             if (payload.new && payload.new.data) {
               triggerIncomingNotification(payload.new.data);
@@ -404,7 +424,7 @@
           })
           .subscribe();
       } else {
-        const saved = localStorage.getItem('sabai_mobile_v3_offline');
+        const saved = localStorage.getItem('sabai_mobile_v4_offline');
         if (saved) state = JSON.parse(saved);
         setSyncText('โหมดออฟไลน์ (ยังไม่ได้ใส่คีย์)', false);
       }
@@ -425,7 +445,7 @@
           await sb.from('trip_plans').upsert({ id: TRIP_ID, data: state, updated_at: new Date().toISOString() });
           setSyncText('ซิงก์เรียลไทม์', true);
         } else {
-          localStorage.setItem('sabai_mobile_v3_offline', JSON.stringify(state));
+          localStorage.setItem('sabai_mobile_v4_offline', JSON.stringify(state));
           setSyncText('บันทึกในเครื่องแล้ว', false);
         }
       }, 300);
@@ -453,9 +473,7 @@
 
     function setTab(tab) {
       currentTab = tab;
-      if (tab === 'chat') {
-        document.getElementById('chatUnreadDot').classList.add('hidden');
-      }
+      if (tab === 'chat') document.getElementById('chatUnreadDot').classList.add('hidden');
       ['plan', 'expense', 'members', 'chat'].forEach(t => {
         const btn = document.getElementById('nav-' + t);
         if (t === tab) {
@@ -516,13 +534,23 @@
             const gmapUrl = rawMap.startsWith('http') ? rawMap : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rawMap)}`;
             const costFormatted = Number(item.cost || 0).toLocaleString();
             const unitLabel = item.currency === 'LAK' ? 'LAK' : 'THB';
-            const payer = getMemberById(item.payerId);
+            const isFundPaid = item.payerId === 'CENTRAL_FUND';
+            const payer = isFundPaid ? null : getMemberById(item.payerId);
             const isShared = item.splitMode === 'shared';
 
             const isHotel = (item.category || '').includes('ที่พัก');
             const rawUrl = (item.bookingUrl || '').trim();
             const validBookingUrl = rawUrl ? (rawUrl.startsWith('http') ? rawUrl : 'https://' + rawUrl) : '';
             const autoSearchHotelUrl = `https://www.agoda.com/th-th/search?textToSearch=${encodeURIComponent(item.title)}`;
+
+            let badgeHtml = '';
+            if (isFundPaid) {
+              badgeHtml = `<span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">🐷 หักเงินกองกลาง</span>`;
+            } else if (isShared) {
+              badgeHtml = `<span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">หารเท่ากัน (${memberCount} คน)</span>`;
+            } else {
+              badgeHtml = `<span class="text-[11px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">ส่วนตัว (ไม่หาร)</span>`;
+            }
 
             return `
               <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
@@ -552,18 +580,22 @@
                   <div class="flex items-center justify-between">
                     <span class="text-slate-500">${item.category}</span>
                     <span class="font-bold text-sm text-slate-800">${costFormatted} ${unitLabel}</span>
-                    <span class="text-[11px] px-2 py-0.5 rounded-full ${isShared ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800'}">
-                      ${isShared ? `หารเท่ากัน (${memberCount} คน)` : 'ส่วนตัว (ไม่หาร)'}
-                    </span>
+                    ${badgeHtml}
                   </div>
                   <div class="flex items-center justify-between pt-1.5 border-t border-slate-200/60">
-                    <span class="text-slate-500">${isShared ? 'สำรองจ่าย:' : 'ผู้จ่าย:'}</span>
-                    <span class="font-semibold text-slate-700 flex items-center gap-1.5">
-                      <span class="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] flex items-center justify-center overflow-hidden">
-                        ${payer.avatarUrl ? `<img src="${payer.avatarUrl}" class="w-full h-full object-cover"/>` : (payer.emoji || payer.name.charAt(0))}
+                    <span class="text-slate-500">${isFundPaid ? 'ตัดยอดจาก:' : (isShared ? 'สำรองจ่าย:' : 'ผู้จ่าย:')}</span>
+                    ${isFundPaid ? `
+                      <span class="font-semibold text-emerald-700 flex items-center gap-1">
+                        🐷 เงินกองกลางทริป
                       </span>
-                      ${payer.name}
-                    </span>
+                    ` : `
+                      <span class="font-semibold text-slate-700 flex items-center gap-1.5">
+                        <span class="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] flex items-center justify-center overflow-hidden">
+                          ${payer.avatarUrl ? `<img src="${payer.avatarUrl}" class="w-full h-full object-cover"/>` : (payer.emoji || payer.name.charAt(0))}
+                        </span>
+                        ${payer.name}
+                      </span>
+                    `}
                   </div>
                 </div>
 
@@ -602,6 +634,7 @@
       const rate = Number(state.exchangeRate) || 650;
       const memberCount = Math.max(1, state.members.length);
       let totalThb = 0;
+      let fundSpentThb = 0; // ยอดที่ดึงจากเงินกองกลางไปจ่ายจริง
       const catTotals = {};
 
       const memberStats = {};
@@ -617,19 +650,22 @@
           totalThb += thb;
           catTotals[item.category] = (catTotals[item.category] || 0) + thb;
 
-          const payerId = memberStats[item.payerId] ? item.payerId : state.members[0].id;
-          memberStats[payerId].paid += thb;
-
-          if (item.splitMode === 'shared') {
-            // หารเท่ากันทุกคนตามจำนวนสมาชิกในทริป
-            const perHead = thb / memberCount;
-            state.members.forEach(m => {
-              memberStats[m.id].share += perHead;
-            });
+          if (item.payerId === 'CENTRAL_FUND') {
+            // ตัดยอดจากเงินกองกลาง -> หักออกจากคงเหลือกองกลาง ไม่คิดเป็นหนี้โอนระหว่างบุคคล
+            fundSpentThb += thb;
           } else {
-            // ค่าใช้จ่ายส่วนตัว (เช่น ค่าเครื่องบิน) -> คิดเฉพาะคนจ่ายคนเดียว ไม่กระทบยอดโอนกับเพื่อน
-            memberStats[payerId].personal += thb;
-            memberStats[payerId].share += thb;
+            const payerId = memberStats[item.payerId] ? item.payerId : state.members[0].id;
+            memberStats[payerId].paid += thb;
+
+            if (item.splitMode === 'shared') {
+              const perHead = thb / memberCount;
+              state.members.forEach(m => {
+                memberStats[m.id].share += perHead;
+              });
+            } else {
+              memberStats[payerId].personal += thb;
+              memberStats[payerId].share += thb;
+            }
           }
         });
       });
@@ -659,7 +695,7 @@
 
       const totalLak = Math.round(totalThb * rate);
       const fundTotal = state.centralFund.reduce((s, f) => s + (Number(f.amount) || 0), 0);
-      const fundRemaining = fundTotal - totalThb;
+      const fundRemaining = fundTotal - fundSpentThb;
       const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
       const visibleCats = state.showAllCats ? sortedCats : sortedCats.slice(0, 3);
 
@@ -680,10 +716,14 @@
           </div>
         </div>
 
+        <!-- เงินกองกลางทริป (Central Fund) -->
         <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
           <div class="flex items-center justify-between gap-2">
-            <h3 class="font-bold text-sm text-slate-800">🐷 เงินกองกลางทริป (Central Fund)</h3>
-            <button onclick="addCentralFund()" class="bg-[#334155] text-white text-xs font-semibold px-3.5 py-2 rounded-2xl shrink-0">
+            <div>
+              <h3 class="font-bold text-sm text-slate-800">🐷 เงินกองกลางทริป (Central Fund)</h3>
+              <p class="text-[10px] text-slate-400">ลงขันที่นี่ แล้วเลือกจ่ายจาก "เงินกองกลาง" ในหน้าแพลน</p>
+            </div>
+            <button onclick="openFundModal()" class="bg-[#334155] text-white text-xs font-semibold px-3.5 py-2 rounded-2xl shrink-0">
               + เพิ่มเงินกองกลาง
             </button>
           </div>
@@ -694,8 +734,8 @@
               <div class="font-bold text-sm text-slate-800 mt-0.5">฿${Math.round(fundTotal).toLocaleString()}</div>
             </div>
             <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
-              <div class="text-[10px] text-slate-400">ใช้จ่ายไปแล้ว</div>
-              <div class="font-bold text-sm text-amber-600 mt-0.5">฿${Math.round(totalThb).toLocaleString()}</div>
+              <div class="text-[10px] text-slate-400">ดึงกองกลางจ่าย</div>
+              <div class="font-bold text-sm text-amber-600 mt-0.5">฿${Math.round(fundSpentThb).toLocaleString()}</div>
             </div>
             <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
               <div class="text-[10px] text-slate-400">คงเหลือปัจจุบัน</div>
@@ -703,6 +743,26 @@
             </div>
           </div>
           <div class="text-right text-[11px] text-slate-400">คงเหลือ ≈ ${Math.round(fundRemaining * rate).toLocaleString()} กีบ (LAK)</div>
+
+          <div class="pt-2 border-t border-slate-100 space-y-1.5">
+            <div class="text-[11px] font-semibold text-slate-600">ประวัติการลงเงินกองกลาง:</div>
+            ${state.centralFund.length > 0 ? state.centralFund.map((cf, idx) => `
+              <div class="flex items-center justify-between text-xs bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
+                <div class="min-w-0 truncate">
+                  <span class="font-semibold text-slate-700">${cf.by}</span>
+                  ${cf.note ? `<span class="text-slate-400 text-[11px]"> (${cf.note})</span>` : ''}
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span class="font-bold text-emerald-600">+฿${Number(cf.amount).toLocaleString()}</span>
+                  <button onclick="deleteCentralFund(${idx})" class="text-slate-400 hover:text-rose-500 text-[11px]">✕</button>
+                </div>
+              </div>
+            `).join('') : `
+              <div class="text-center text-[11px] text-slate-400 py-2">
+                ยังไม่มีรายการลงเงินกองกลาง กด "+ เพิ่มเงินกองกลาง" เพื่อตั้งต้นทริป
+              </div>
+            `}
+          </div>
         </div>
 
         <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
@@ -732,7 +792,7 @@
         </div>
 
         <div class="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm space-y-3">
-          <h3 class="font-bold text-sm text-slate-800">🤝 สรุปยอดโอนเคลียร์บิล (หาร ${memberCount} คน)</h3>
+          <h3 class="font-bold text-sm text-slate-800">🤝 สรุปยอดโอนเคลียร์บิล (ส่วนที่สำรองจ่ายส่วนตัว)</h3>
           ${settlements.length > 0 ? `
             <div class="space-y-2">
               ${settlements.map(s => `
@@ -771,7 +831,7 @@
                     <div class="min-w-0">
                       <div class="font-bold text-xs text-slate-800 truncate">${st.member.name}</div>
                       <div class="text-[11px] text-slate-400">
-                        จ่ายจริง ฿${Math.round(st.paid).toLocaleString()} • ยอดของตัวเอง ฿${Math.round(st.share).toLocaleString()}
+                        สำรองจ่าย ฿${Math.round(st.paid).toLocaleString()} • ส่วนแบ่ง ฿${Math.round(st.share).toLocaleString()}
                         ${st.personal > 0 ? `<br/><span class="text-purple-600">(รวมค่าใช้จ่ายส่วนตัว ฿${Math.round(st.personal).toLocaleString()})</span>` : ''}
                       </div>
                     </div>
@@ -939,6 +999,21 @@
     }
     function toggleShowAllCats() { state.showAllCats = !state.showAllCats; renderApp(); }
 
+    function onPayerChange() {
+      const payerVal = document.getElementById('mPayerId').value;
+      const splitRow = document.getElementById('splitModeRow');
+      const hint = document.getElementById('splitHintText');
+      if (payerVal === 'CENTRAL_FUND') {
+        splitRow.classList.add('hidden');
+        hint.innerText = '🐷 ระบบจะดึงเงินกองกลางไปหักลบโดยอัตโนมัติ (ไม่คิดยอดหนี้รายบุคคล)';
+        hint.className = 'text-[11px] text-emerald-700 font-medium text-center';
+      } else {
+        splitRow.classList.remove('hidden');
+        hint.className = 'text-[11px] text-slate-500 text-center';
+        setSplitMode(modalSplitMode);
+      }
+    }
+
     function setSplitMode(mode) {
       modalSplitMode = mode;
       const btnShared = document.getElementById('btnSplitShared');
@@ -962,7 +1037,10 @@
     function openPlanModal(idx) {
       document.getElementById('editItemIdx').value = idx;
       const payerSel = document.getElementById('mPayerId');
-      payerSel.innerHTML = state.members.map(m => `<option value="${m.id}">${m.emoji || '🐰'} ${m.name}</option>`).join('');
+      payerSel.innerHTML = `
+        <option value="CENTRAL_FUND">🐷 หักจากเงินกองกลางทริป (Central Fund)</option>
+        ${state.members.map(m => `<option value="${m.id}">${m.emoji || '🐰'} ${m.name} (สำรองจ่าย)</option>`).join('')}
+      `;
 
       if (idx >= 0) {
         const item = state.days[state.activeDayIdx].items[idx];
@@ -994,13 +1072,15 @@
         document.getElementById('mCategory').value = '🍜 ค่าอาหาร';
         document.getElementById('mCost').value = '';
         document.getElementById('mCurrency').value = 'LAK';
-        document.getElementById('mPayerId').value = getActiveUser().id;
+        // ถ้ามีเงินกองกลางอยู่แล้ว ตั้งค่าเริ่มต้นให้ดึงจากกองกลางได้เลย
+        document.getElementById('mPayerId').value = state.centralFund.length > 0 ? 'CENTRAL_FUND' : getActiveUser().id;
         document.getElementById('mNote').value = '';
         tempModalPhoto = '';
         document.getElementById('mPhotoUrl').value = '';
         setSplitMode('shared');
       }
 
+      onPayerChange();
       updateModalPreview();
       document.getElementById('planModal').classList.remove('hidden');
     }
@@ -1039,6 +1119,8 @@
       const title = document.getElementById('mTitle').value.trim();
       if (!title) return alert('กรุณากรอกชื่อสถานที่หรือกิจกรรมครับ');
 
+      const payerId = document.getElementById('mPayerId').value;
+
       const obj = {
         id: 'i' + Date.now(),
         icon: document.getElementById('mIcon').value,
@@ -1051,8 +1133,8 @@
         category: document.getElementById('mCategory').value,
         cost: Number(document.getElementById('mCost').value) || 0,
         currency: document.getElementById('mCurrency').value,
-        payerId: document.getElementById('mPayerId').value,
-        splitMode: modalSplitMode,
+        payerId,
+        splitMode: payerId === 'CENTRAL_FUND' ? 'fund' : modalSplitMode,
         note: document.getElementById('mNote').value.trim(),
         photo: tempModalPhoto
       };
@@ -1072,10 +1154,28 @@
     }
 
     function updateRate(val) { state.exchangeRate = Math.max(1, Number(val) || 650); renderApp(); saveState(); }
-    function addCentralFund() {
-      const amt = prompt('ระบุจำนวนเงินที่ลงกองกลางเพิ่ม (บาท):', '1000');
-      if (amt && !isNaN(amt)) {
-        state.centralFund.push({ id: 'cf' + Date.now(), by: getActiveUser().name, amount: Number(amt), note: 'เพิ่มเงินกองกลาง' });
+
+    function openFundModal() {
+      const sel = document.getElementById('fMemberId');
+      sel.innerHTML = state.members.map(m => `<option value="${m.name}">${m.emoji || '🐰'} ${m.name}</option>`).join('');
+      sel.value = getActiveUser().name;
+      document.getElementById('fAmount').value = '';
+      document.getElementById('fNote').value = '';
+      document.getElementById('fundModal').classList.remove('hidden');
+    }
+    function closeFundModal() { document.getElementById('fundModal').classList.add('hidden'); }
+    function saveCentralFund() {
+      const by = document.getElementById('fMemberId').value;
+      const amount = Number(document.getElementById('fAmount').value);
+      const note = document.getElementById('fNote').value.trim();
+      if (!amount || amount <= 0) return alert('กรุณากรอกจำนวนเงินที่ถูกต้องครับ');
+      state.centralFund.push({ id: 'cf' + Date.now(), by, amount, note });
+      closeFundModal();
+      renderApp(); saveState();
+    }
+    function deleteCentralFund(idx) {
+      if (confirm('ลบรายการลงเงินกองกลางนี้ใช่หรือไม่?')) {
+        state.centralFund.splice(idx, 1);
         renderApp(); saveState();
       }
     }
